@@ -1,0 +1,1037 @@
+<title>Матрица сейлза</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;600;700&family=Golos+Text:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EDEFF2; --surface:#FFFFFF; --surface-2:#F5F7F9; --surface-3:#E7EBF0;
+  --ink:#141C26; --ink-2:#3A4756; --muted:#5D6B7B; --line:#D6DCE4; --line-2:#C2CBD6;
+  --accent:#8A6516; --accent-2:#B98A2B; --accent-soft:#F4EBD8; --on-accent:#FFF8EC;
+  --good:#2E7D5B; --good-soft:#DEF0E7;
+  --warn:#9C6B12; --warn-soft:#F7EBD3;
+  --bad:#A93C2F; --bad-soft:#F7E2DE;
+  --info:#33628A; --info-soft:#E1EBF3;
+  --shadow:0 1px 2px rgba(20,28,38,.06), 0 10px 26px -14px rgba(20,28,38,.22);
+  --radius:10px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F151C; --surface:#161E27; --surface-2:#1B242F; --surface-3:#232E3B;
+    --ink:#E8EDF3; --ink-2:#C3CDD8; --muted:#94A3B3; --line:#2A3542; --line-2:#3B4857;
+    --accent:#D9A94A; --accent-2:#E8C376; --accent-soft:#2C2718; --on-accent:#1A1204;
+    --good:#5CB88C; --good-soft:#163025;
+    --warn:#D6A445; --warn-soft:#302713;
+    --bad:#E0776A; --bad-soft:#331C19;
+    --info:#79AAD0; --info-soft:#152634;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 30px -16px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F151C; --surface:#161E27; --surface-2:#1B242F; --surface-3:#232E3B;
+  --ink:#E8EDF3; --ink-2:#C3CDD8; --muted:#94A3B3; --line:#2A3542; --line-2:#3B4857;
+  --accent:#D9A94A; --accent-2:#E8C376; --accent-soft:#2C2718; --on-accent:#1A1204;
+  --good:#5CB88C; --good-soft:#163025;
+  --warn:#D6A445; --warn-soft:#302713;
+  --bad:#E0776A; --bad-soft:#331C19;
+  --info:#79AAD0; --info-soft:#152634;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 30px -16px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Golos Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  font-size:14.5px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:Bitter,Georgia,"Times New Roman",serif; margin:0; text-wrap:balance; letter-spacing:-.01em}
+h1{font-size:1.65rem; font-weight:600}
+h2{font-size:1.15rem; font-weight:600}
+h3{font-size:1rem; font-weight:600}
+p{margin:0}
+button,input,select,textarea{font:inherit; color:inherit}
+a{color:var(--accent); text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent-2); outline-offset:2px; border-radius:4px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace; font-variant-numeric:tabular-nums}
+.eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+
+/* ---------- login ---------- */
+.gate{min-height:100vh; display:grid; place-items:center; padding:24px}
+.gate-card{width:min(420px,100%); background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); padding:28px}
+.gate-card h1{margin-bottom:6px}
+.mark{display:inline-flex; align-items:center; gap:9px; margin-bottom:18px}
+.mark i{width:26px; height:26px; border-radius:7px; background:var(--accent); color:var(--on-accent); display:grid; place-items:center; font-style:normal; font-family:Bitter,serif; font-weight:700; font-size:13px}
+.field{display:flex; flex-direction:column; gap:5px; margin-top:14px}
+.field label{font-size:12.5px; font-weight:500; color:var(--ink-2)}
+input[type=text],input[type=password],input[type=date],select,textarea{
+  background:var(--surface-2); border:1px solid var(--line-2); border-radius:8px; padding:9px 11px; width:100%;
+}
+textarea{resize:vertical; min-height:78px; line-height:1.45}
+.demo-users{margin-top:20px; border-top:1px solid var(--line); padding-top:14px; display:grid; gap:6px}
+.demo-user{display:flex; justify-content:space-between; gap:10px; align-items:center; background:none; border:1px dashed var(--line-2); border-radius:8px; padding:7px 10px; cursor:pointer; text-align:left}
+.demo-user:hover{border-color:var(--accent-2); background:var(--surface-2)}
+.err{color:var(--bad); font-size:12.5px; margin-top:10px; min-height:1em}
+
+/* ---------- shell ---------- */
+.shell{min-height:100vh; display:flex; flex-direction:column}
+.topbar{position:sticky; top:0; z-index:20; background:var(--surface); border-bottom:1px solid var(--line); display:flex; align-items:center; gap:16px; padding:10px 20px; flex-wrap:wrap}
+.topbar .mark{margin:0}
+.nav{display:flex; gap:4px; margin-left:8px}
+.nav button{background:none; border:1px solid transparent; border-radius:8px; padding:6px 11px; cursor:pointer; color:var(--muted); font-weight:500}
+.nav button:hover{color:var(--ink); background:var(--surface-2)}
+.nav button[aria-current="page"]{color:var(--ink); background:var(--surface-3); border-color:var(--line)}
+.spacer{flex:1}
+.userchip{display:flex; align-items:center; gap:9px; background:var(--surface-2); border:1px solid var(--line); border-radius:999px; padding:4px 6px 4px 12px}
+.userchip .role{font-size:11px; color:var(--muted)}
+.avatar{width:26px; height:26px; border-radius:50%; background:var(--surface-3); border:1px solid var(--line-2); display:grid; place-items:center; font-size:11px; font-weight:600}
+main{flex:1; width:min(1240px,100%); margin:0 auto; padding:22px 20px 64px}
+
+/* ---------- generic ---------- */
+.card{background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow)}
+.card-h{padding:14px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+.card-b{padding:16px}
+.btn{display:inline-flex; align-items:center; gap:7px; background:var(--surface-2); border:1px solid var(--line-2); color:var(--ink); border-radius:8px; padding:8px 13px; cursor:pointer; font-weight:500}
+.btn:hover{background:var(--surface-3)}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.btn-primary{background:var(--accent); border-color:var(--accent); color:var(--on-accent)}
+.btn-primary:hover{background:var(--accent-2); border-color:var(--accent-2)}
+.btn-ghost{background:none; border-color:transparent; color:var(--muted)}
+.btn-ghost:hover{background:var(--surface-2); color:var(--ink)}
+.btn-sm{padding:5px 9px; font-size:12.5px}
+.row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.pill{display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:3px 10px; font-size:12px; font-weight:600; border:1px solid transparent}
+.pill.good{background:var(--good-soft); color:var(--good); border-color:color-mix(in srgb,var(--good) 30%,transparent)}
+.pill.warn{background:var(--warn-soft); color:var(--warn); border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.pill.bad{background:var(--bad-soft); color:var(--bad); border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.pill.info{background:var(--info-soft); color:var(--info); border-color:color-mix(in srgb,var(--info) 30%,transparent)}
+.pill.mute{background:var(--surface-3); color:var(--muted); border-color:var(--line)}
+.tag{font-size:11px; border:1px solid var(--line-2); border-radius:5px; padding:1px 6px; color:var(--muted)}
+.tag.crit{border-color:color-mix(in srgb,var(--bad) 45%,transparent); color:var(--bad)}
+</style>
+<style>
+/* ---------- candidates list ---------- */
+.list-head{display:flex; align-items:flex-end; gap:16px; margin-bottom:16px; flex-wrap:wrap}
+.list-head p{max-width:62ch}
+.cands{display:grid; gap:10px}
+.cand{display:grid; grid-template-columns:minmax(220px,2fr) minmax(280px,2.2fr) auto auto; gap:16px; align-items:center; width:100%; text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 16px; cursor:pointer; box-shadow:var(--shadow)}
+.cand:hover{border-color:var(--line-2)}
+.cand[data-mine="1"]{border-left:3px solid var(--accent)}
+.cand .name{font-weight:600}
+.progress{display:flex; gap:4px; align-items:center}
+.dot{display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:2px 8px 2px 6px; background:var(--surface-2)}
+.dot b{width:7px; height:7px; border-radius:50%; background:var(--line-2); display:block}
+.dot.done b{background:var(--good)} .dot.done{color:var(--ink-2)}
+.dot.active b{background:var(--accent)} .dot.active{color:var(--accent); border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.score-badge{font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:15px; text-align:right; min-width:56px}
+
+/* ---------- candidate detail ---------- */
+.crumbs{display:flex; align-items:center; gap:8px; margin-bottom:12px}
+.hero{display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; margin-bottom:18px}
+.hero .meta{display:flex; gap:18px; flex-wrap:wrap; margin-top:6px}
+.stepper{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:18px 0}
+.step{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--line-2); border-radius:10px; padding:11px 13px; display:grid; gap:3px}
+.step .n{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em; color:var(--muted)}
+.step .t{font-weight:600; font-size:13.5px}
+.step .s{font-size:12px; color:var(--muted)}
+.step.done{border-left-color:var(--good)}
+.step.active{border-left-color:var(--accent); background:var(--surface)}
+.step.active .s{color:var(--accent)}
+.step.locked{opacity:.6}
+.layout{display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:18px; align-items:start}
+@media (max-width:1080px){.layout{grid-template-columns:1fr} .stepper{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:640px){.stepper{grid-template-columns:1fr} .cand{grid-template-columns:1fr; gap:10px}}
+
+/* ---------- matrix table ---------- */
+.tablewrap{overflow-x:auto}
+table.matrix{width:100%; border-collapse:collapse; min-width:720px}
+table.matrix th{text-align:left; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:600; padding:10px 12px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--surface); z-index:1}
+table.matrix td{padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+table.matrix tr.block-row td{background:var(--surface-2); padding:7px 12px}
+table.matrix tr.block-row .eyebrow{color:var(--ink-2)}
+table.matrix tr:hover td:not(.blockcell){background:color-mix(in srgb,var(--surface-2) 60%,transparent)}
+.comp-name{font-weight:500; display:flex; align-items:center; gap:7px; flex-wrap:wrap}
+.comp-hint{color:var(--muted); font-size:12.3px; margin-top:3px; max-width:52ch}
+.col-score{width:150px}
+.col-delta{width:78px}
+.seg{display:inline-flex; border:1px solid var(--line-2); border-radius:8px; overflow:hidden; background:var(--surface-2)}
+.seg button{background:none; border:0; border-right:1px solid var(--line); width:30px; height:30px; cursor:pointer; font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--muted)}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--surface-3); color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink); color:var(--surface); font-weight:600}
+.seg button[aria-pressed="true"][data-v="0"],.seg button[aria-pressed="true"][data-v="1"]{background:var(--bad); color:#fff}
+.seg button[aria-pressed="true"][data-v="2"]{background:var(--info); color:#fff}
+.seg button[aria-pressed="true"][data-v="3"]{background:var(--good); color:#fff}
+.sc{display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:26px; padding:0 7px; border-radius:7px; font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:13px; border:1px solid transparent}
+.sc.v0,.sc.v1{background:var(--bad-soft); color:var(--bad); border-color:color-mix(in srgb,var(--bad) 28%,transparent)}
+.sc.v2{background:var(--info-soft); color:var(--info); border-color:color-mix(in srgb,var(--info) 28%,transparent)}
+.sc.v3{background:var(--good-soft); color:var(--good); border-color:color-mix(in srgb,var(--good) 28%,transparent)}
+.sc.empty{background:var(--surface-2); color:var(--muted); border-color:var(--line)}
+.sc.hidden-blind{background:repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2) 4px,var(--surface-3) 4px,var(--surface-3) 8px); color:var(--muted); border-color:var(--line)}
+.delta{font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--muted)}
+.delta.flag{color:var(--warn); font-weight:600}
+.rowcmt{margin-top:7px}
+.rowcmt summary{cursor:pointer; font-size:12px; color:var(--muted); list-style:none; display:inline-flex; align-items:center; gap:5px; border:1px dashed var(--line-2); border-radius:6px; padding:2px 8px}
+.rowcmt summary::-webkit-details-marker{display:none}
+.rowcmt summary::before{content:"+"; font-family:"IBM Plex Mono",monospace}
+.rowcmt[open] summary::before{content:"–"}
+.rowcmt summary:hover{color:var(--ink); border-color:var(--accent-2)}
+.rowcmt textarea{min-height:44px; font-size:13px; margin-top:6px}
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted)}
+
+/* ---------- rail ---------- */
+.rail{display:grid; gap:14px; position:sticky; top:74px}
+.gauge{display:grid; gap:8px}
+.bar{height:9px; background:var(--surface-3); border-radius:999px; overflow:hidden; border:1px solid var(--line)}
+.bar i{display:block; height:100%; background:var(--accent)}
+.bar i.good{background:var(--good)} .bar i.warn{background:var(--warn)} .bar i.bad{background:var(--bad)}
+.kv{display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px dashed var(--line)}
+.kv:last-child{border-bottom:0}
+.kv .k{color:var(--muted); font-size:12.5px}
+.kv .v{font-family:"IBM Plex Mono",monospace; font-weight:600}
+.verdict{border-radius:10px; padding:12px 13px; border:1px solid var(--line); background:var(--surface-2)}
+.verdict.good{background:var(--good-soft); border-color:color-mix(in srgb,var(--good) 30%,transparent)}
+.verdict.warn{background:var(--warn-soft); border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+.verdict.bad{background:var(--bad-soft); border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.verdict h3{font-size:14.5px; margin-bottom:4px}
+.flags{display:grid; gap:7px}
+.flagline{display:flex; gap:8px; align-items:flex-start; font-size:12.8px; border-left:2px solid var(--warn); padding-left:9px}
+.flagline.crit{border-left-color:var(--bad)}
+
+/* ---------- ipr ---------- */
+.ipr-item{border:1px solid var(--line); border-radius:10px; padding:12px 13px; display:grid; gap:8px; background:var(--surface-2)}
+.ipr-grid{display:grid; gap:10px}
+.ipr-meta{display:grid; grid-template-columns:1fr 130px; gap:10px}
+@media (max-width:640px){.ipr-meta{grid-template-columns:1fr}}
+.banner{border:1px dashed var(--line-2); border-radius:10px; padding:12px 14px; background:var(--surface-2); color:var(--ink-2); font-size:13px}
+.toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(10px); background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:999px; font-size:13px; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; z-index:50}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+@media print{
+  .topbar,.rail,.no-print,.stepper{display:none!important}
+  body{background:#fff}
+  main{padding:0; width:auto}
+  .card{box-shadow:none; border-color:#bbb}
+}
+</style>
+
+<div id="gate" class="gate" hidden>
+  <form class="gate-card" id="loginForm">
+    <span class="mark"><i>МС</i><span><b>Матрица сейлза</b><br><span class="small muted">оценка кандидата в четыре руки</span></span></span>
+    <h1>Вход</h1>
+    <p class="small muted">Прототип: учётные записи и данные хранятся в браузере, реальные персданные вносить нельзя.</p>
+    <div class="field"><label for="login">Логин</label><input id="login" type="text" autocomplete="username" placeholder="hr"></div>
+    <div class="field"><label for="pass">Пароль</label><input id="pass" type="password" autocomplete="current-password" placeholder="demo"></div>
+    <div class="err" id="loginErr"></div>
+    <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center; margin-top:6px">Войти</button>
+    <div class="demo-users" id="demoUsers"><span class="eyebrow">Демо-доступы — нажмите, чтобы подставить</span></div>
+  </form>
+</div>
+
+<div id="app" class="shell" hidden>
+  <header class="topbar">
+    <span class="mark"><i>МС</i><b>Матрица сейлза</b></span>
+    <nav class="nav" id="nav"></nav>
+    <span class="spacer"></span>
+    <div class="userchip"><span><b id="uName"></b><br><span class="role" id="uRole"></span></span><span class="avatar" id="uAv"></span></div>
+    <button class="btn btn-ghost btn-sm" id="logout">Выйти</button>
+  </header>
+  <main id="view"></main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   1. СПРАВОЧНИК КОМПЕТЕНЦИЙ (черновик под сейлза)
+   w — вес (1..3), crit — стоп-фактор, by — кто оценивает,
+   dev — типовые развивающие действия для ИПР
+   ============================================================ */
+const SCALE = [
+  {v:0, t:"Не проявлена", d:"Признаков поведения нет или проявляется обратное"},
+  {v:1, t:"Ниже нормы",   d:"Проявляется эпизодически, требует контроля"},
+  {v:2, t:"Норма",        d:"Уверенно работает на типовых задачах"},
+  {v:3, t:"Сильная",      d:"Опора команды, может учить других"}
+];
+
+const MATRIX = [
+ {block:"Мотивация и драйв", items:[
+  {id:"m1", n:"Ориентация на результат", w:3, by:["hr","bu"], hint:"Говорит цифрами: план/факт, конверсия, средний чек. Приводит примеры, где дожал сделку.", dev:"Личный дашборд «план/факт» с еженедельной сверкой у РОПа"},
+  {id:"m2", n:"Устойчивость к отказам", w:3, by:["hr","bu"], hint:"Как реагирует на «нет», сколько касаний делает, как восстанавливается после серии отказов.", dev:"20 холодных касаний в неделю с разбором двух худших звонков"},
+  {id:"m3", n:"Обучаемость", w:2, by:["hr","bu"], hint:"Что освоил за год и как применил. Принимает обратную связь без защиты и споров.", dev:"Наставник + разбор одного звонка в неделю, чек-лист внедрённых правок"},
+  {id:"m4", n:"Мотивация деньгами", w:2, by:["hr"], hint:"Понимает свою схему дохода, хочет переменную часть, а не только оклад.", dev:"Разбор схемы мотивации и построение личного плана дохода на квартал"}
+ ]},
+ {block:"Навык продажи", items:[
+  {id:"s1", n:"Квалификация и выявление потребности", w:3, by:["hr","bu"], hint:"Задаёт открытые вопросы, доходит до боли, бюджета и сроков, не презентует сразу.", dev:"Отработка блока вопросов на 10 реальных сделках, чек-лист квалификации"},
+  {id:"s2", n:"Презентация ценности", w:3, by:["hr","bu"], hint:"Переводит свойства продукта в выгоду клиента, говорит на языке его задачи.", dev:"Собрать банк из 5 кейсов клиентов и защитить презентацию на планёрке"},
+  {id:"s3", n:"Работа с возражениями", w:3, by:["hr","bu"], hint:"Отрабатывает «дорого», «подумаю», «уже есть поставщик» без спора и давления.", dev:"Тренажёр возражений 2 раза в неделю + карта из 10 частых возражений"},
+  {id:"s4", n:"Закрытие сделки", w:3, by:["bu"], hint:"Фиксирует следующий шаг, назначает дату, берёт обязательства с клиента.", dev:"Правило «ни одного звонка без назначенного следующего шага», контроль по CRM"},
+  {id:"s5", n:"Переговоры о цене", w:2, by:["bu"], hint:"Держит цену, торгуется по принципу обмена, не сливает маржу ради подписи.", dev:"Разбор трёх сделок со скидкой: что можно было получить взамен"},
+  {id:"s6", n:"Холодный контакт", w:2, by:["bu"], hint:"Проход секретаря, выход на ЛПР, первые 30 секунд разговора.", dev:"Скрипт первого касания + 30 звонков с прослушкой РОПом"}
+ ]},
+ {block:"Дисциплина и процесс", items:[
+  {id:"p1", n:"Работа в CRM", w:2, by:["hr","bu"], hint:"Ведёт сделки и комментарии, не держит воронку в голове и блокноте.", dev:"Ежедневный контроль чистоты воронки, 100% сделок с датой следующего шага"},
+  {id:"p2", n:"Планирование и приоритеты", w:2, by:["hr","bu"], hint:"Понимает, на какие сделки тратит время, отделяет крупное от срочного.", dev:"Планирование недели по ABC-сегментам, сверка по пятницам"},
+  {id:"p3", n:"Соблюдение регламентов", w:2, by:["bu"], hint:"Работает по скрипту и SLA ответа, не изобретает свой процесс.", dev:"Аттестация по регламенту отдела через 30 дней"},
+  {id:"p4", n:"Управление воронкой и прогноз", w:2, by:["bu"], hint:"Даёт прогноз закрытия и объясняет, на чём он основан.", dev:"Еженедельный форкаст с обоснованием по каждой сделке > среднего чека"}
+ ]},
+ {block:"Коммуникация", items:[
+  {id:"c1", n:"Установление контакта", w:2, by:["hr","bu"], hint:"Быстро снимает напряжение, ведёт диалог, а не допрос.", dev:"Разбор первых минут пяти встреч с наставником"},
+  {id:"c2", n:"Активное слушание", w:3, by:["hr","bu"], hint:"Не перебивает, уточняет, резюмирует сказанное клиентом.", dev:"Правило резюме в конце встречи + проверка по записям"},
+  {id:"c3", n:"Письменная коммуникация", w:2, by:["hr","bu"], hint:"КП и письма структурны, без ошибок, с понятным следующим шагом.", dev:"Шаблоны писем отдела, первые 10 писем — через вычитку РОПа"},
+  {id:"c4", n:"Речь и структурность", w:2, by:["hr","bu"], hint:"Говорит по сути, держит структуру, не тонет в деталях.", dev:"Питч продукта на 60 секунд, защита на планёрке раз в неделю"}
+ ]},
+ {block:"Личное и командное", items:[
+  {id:"l1", n:"Честность и надёжность", w:3, crit:true, by:["hr","bu"], hint:"Не приукрашивает статус сделки и прошлые результаты, признаёт ошибки.", dev:"Стоп-фактор: развитию не подлежит, решение принимается сразу"},
+  {id:"l2", n:"Стрессоустойчивость", w:2, by:["hr","bu"], hint:"Держит конфликтного клиента и давление плана без срывов.", dev:"Разбор двух конфликтных ситуаций с наставником, техника паузы"},
+  {id:"l3", n:"Работа в команде", w:2, by:["hr","bu"], hint:"Делится информацией, помогает коллегам, не тянет одеяло на себя.", dev:"Ведение одной командной инициативы в квартал"},
+  {id:"l4", n:"Самостоятельность", w:2, by:["hr","bu"], hint:"Разбирается сам до того, как принести вопрос руководителю.", dev:"Правило «вопрос + два варианта решения»"}
+ ]},
+ {block:"Экспертиза", items:[
+  {id:"e1", n:"Знание продукта и рынка", w:2, by:["bu"], hint:"Знает линейку, отличия от конкурентов, типовые сценарии применения.", dev:"Аттестация по продукту через 30 дней, карта конкурентов"},
+  {id:"e2", n:"Понимание ЛПР и цикла сделки", w:2, by:["hr","bu"], hint:"Различает роли в закупке, понимает длину и этапы своего цикла.", dev:"Карта ЛПР по пяти текущим сделкам"},
+  {id:"e3", n:"Юнит-экономика сделки", w:1, by:["bu"], hint:"Понимает маржинальность, стоимость привлечения, цену скидки.", dev:"Расчёт маржи по своим сделкам за месяц вместе с РОПом"}
+ ]}
+];
+const ALL = MATRIX.flatMap(b => b.items.map(i => ({...i, block:b.block})));
+const BY_ID = Object.fromEntries(ALL.map(i => [i.id, i]));
+
+const ROLES = {
+  hr:    {t:"HR", full:"HR-специалист", stage:"hr"},
+  rop:   {t:"РОП", full:"Руководитель отдела продаж", stage:"rop"},
+  bu:    {t:"БУ", full:"Оценщик на БУ", stage:"bu"},
+  admin: {t:"Админ", full:"Администратор процесса", stage:null}
+};
+const STAGES = [
+  {k:"hr",  n:"Этап 1", t:"Первичное интервью", who:"hr",  d:"HR отмечает выявленные компетенции"},
+  {k:"rop", n:"Этап 2", t:"Сверка с РОПом",     who:"rop", d:"РОП подтверждает или корректирует"},
+  {k:"bu",  n:"Этап 3", t:"Оценка на БУ",       who:"bu",  d:"Слепая оценка в деле"},
+  {k:"fin", n:"Этап 4", t:"Решение",            who:"rop", d:"ИПР или расставание"}
+];
+const USERS = [
+  {login:"hr",    pass:"demo", name:"Ольга Тимина",   role:"hr"},
+  {login:"rop",   pass:"demo", name:"Сергей Лыков",   role:"rop"},
+  {login:"bu",    pass:"demo", name:"Никита Бельских",role:"bu"},
+  {login:"admin", pass:"demo", name:"Админ процесса", role:"admin"}
+];
+</script>
+
+<script>
+/* ============================================================
+   2. ХРАНИЛИЩЕ И ДЕМО-ДАННЫЕ
+   ============================================================ */
+const KEY = "ms.v1";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+function safeGet(){ try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e){ return null; } }
+function safeSet(v){ try { localStorage.setItem(KEY, JSON.stringify(v)); } catch(e){ /* приватный режим — работаем в памяти */ } }
+
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+function gen(seed, role, bias){
+  const rng = mulberry32(seed);
+  const out = {};
+  ALL.filter(i => i.by.includes(role)).forEach(i => { out[i.id] = clamp(Math.round(bias + (rng()*2-1)*1.05), 0, 3); });
+  return out;
+}
+function daysAgo(n){ const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
+function daysAhead(n){ const d = new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+
+function emptyStage(){ return {status:"pending", sc:{}, cmt:{}, note:"", by:"", at:""}; }
+function newCand(name, pos, src){
+  return {id:uid(), name, pos, src, created:daysAgo(1),
+    st:{hr:emptyStage(), rop:emptyStage(), bu:emptyStage()},
+    decision:{status:"pending", verdict:"", comment:"", by:"", at:""},
+    ipr:{goal:"", checkpoint:daysAhead(30), items:[]}};
+}
+
+function seed(){
+  const c1 = newCand("Кирилл Абрамов", "Менеджер по продажам", "hh.ru");
+  c1.created = daysAgo(0);
+
+  const c2 = newCand("Ирина Ковалёва", "Менеджер по продажам", "Рекомендация");
+  c2.created = daysAgo(3);
+  c2.st.hr = {status:"submitted", sc:gen(11,"hr",2.3), cmt:{m2:"Три года в холодных продажах, отказы разбирает спокойно."}, note:"Опыт 4 года, ищет переменную часть выше рынка. Готова выйти через 2 недели.", by:"Ольга Тимина", at:daysAgo(2)};
+
+  const c3 = newCand("Артём Дроздов", "Менеджер по продажам", "Telegram-канал");
+  c3.created = daysAgo(7);
+  c3.st.hr = {status:"submitted", sc:gen(23,"hr",2.1), cmt:{}, note:"Опыт 2 года в рознице, в B2B не работал. Мотивация — деньги и рост.", by:"Ольга Тимина", at:daysAgo(6)};
+  c3.st.rop = {status:"submitted", sc:{s1:1, c2:2}, cmt:{s1:"На кейсе не квалифицировал: сразу ушёл в презентацию."}, note:"С мотивацией согласен, навык квалификации переоценён.", by:"Сергей Лыков", at:daysAgo(5)};
+
+  const c4 = newCand("Марина Швец", "Старший менеджер", "Рекомендация");
+  c4.created = daysAgo(14);
+  c4.st.hr = {status:"submitted", sc:gen(37,"hr",2.5), cmt:{}, note:"Сильное интервью, много цифр, уверенная речь.", by:"Ольга Тимина", at:daysAgo(13)};
+  c4.st.rop = {status:"submitted", sc:{}, cmt:{}, note:"С оценкой HR согласен полностью.", by:"Сергей Лыков", at:daysAgo(12)};
+  c4.st.bu  = {status:"submitted", sc:gen(41,"bu",1.6), cmt:{s3:"На возражении «дорого» дважды дала скидку без обмена."}, note:"В деле слабее, чем на интервью: сильная самопрезентация, но техника проседает.", by:"Никита Бельских", at:daysAgo(4)};
+
+  const c5 = newCand("Павел Гуров", "Менеджер по продажам", "hh.ru");
+  c5.created = daysAgo(21);
+  c5.st.hr = {status:"submitted", sc:gen(53,"hr",2.2), cmt:{}, note:"Резюме отличное, проверяли рекомендации.", by:"Ольга Тимина", at:daysAgo(20)};
+  c5.st.rop = {status:"submitted", sc:{}, cmt:{}, note:"Ок, идём дальше.", by:"Сергей Лыков", at:daysAgo(19)};
+  const buSc = gen(59,"bu",1.5); buSc.l1 = 0; buSc.s4 = 1;
+  c5.st.bu = {status:"submitted", sc:buSc, cmt:{l1:"Приписал себе две чужие сделки, при проверке не признал."}, note:"Стоп-фактор по надёжности, дальше не смотрим.", by:"Никита Бельских", at:daysAgo(10)};
+  c5.decision = {status:"final", verdict:"out", comment:"Стоп-фактор по честности подтверждён на БУ. Расставание, в резерв не заносим.", by:"Сергей Лыков", at:daysAgo(9)};
+
+  return {candidates:[c1, c2, c3, c4, c5], v:1};
+}
+
+let DB = safeGet() || seed();
+let SESSION = null;
+try { SESSION = JSON.parse(sessionStorage.getItem(KEY + ".s") || "null"); } catch(e){}
+let ROUTE = {view:"list", id:null};
+
+function save(){ safeSet(DB); }
+function cand(id){ return DB.candidates.find(c => c.id === id); }
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 2200); }
+
+/* ============================================================
+   3. РАСЧЁТ ОЦЕНОК И РЕКОМЕНДАЦИИ
+   ============================================================ */
+const hireVal = (c, id) => (c.st.rop.sc[id] !== undefined ? c.st.rop.sc[id] : c.st.hr.sc[id]);
+const buVal   = (c, id) => c.st.bu.sc[id];
+
+function pct(c, getter, filterRole){
+  let got = 0, max = 0;
+  ALL.filter(i => i.by.includes(filterRole)).forEach(i => {
+    const v = getter(c, i.id);
+    if (v === undefined) return;
+    got += v * i.w; max += 3 * i.w;
+  });
+  return max ? Math.round(got / max * 100) : null;
+}
+function scores(c){
+  const hire = pct(c, hireVal, "hr");
+  const bu = pct(c, buVal, "bu");
+  const both = [hire, bu].filter(v => v !== null);
+  const total = both.length ? Math.round(both.reduce((a,b) => a+b, 0) / both.length) : null;
+  return {hire, bu, total};
+}
+function gaps(c){
+  return ALL.filter(i => {
+    const a = hireVal(c, i.id), b = buVal(c, i.id);
+    return a !== undefined && b !== undefined && Math.abs(a - b) >= 2;
+  }).map(i => ({...i, hire:hireVal(c, i.id), bu:buVal(c, i.id)}));
+}
+function stopFlags(c){
+  return ALL.filter(i => i.crit).map(i => {
+    const vals = [hireVal(c, i.id), buVal(c, i.id)].filter(v => v !== undefined);
+    const low = vals.filter(v => v <= 1);
+    return low.length ? {...i, vals} : null;
+  }).filter(Boolean);
+}
+function weakItems(c){
+  return ALL.map(i => {
+    const vals = [hireVal(c, i.id), buVal(c, i.id)].filter(v => v !== undefined);
+    if (!vals.length) return null;
+    const min = Math.min(...vals);
+    return min <= 1 ? {...i, min} : null;
+  }).filter(Boolean).sort((a,b) => (b.w - a.w) || (a.min - b.min));
+}
+function stage(c){
+  if (c.st.hr.status !== "submitted") return "hr";
+  if (c.st.rop.status !== "submitted") return "rop";
+  if (c.st.bu.status !== "submitted") return "bu";
+  return "fin";
+}
+function recommend(c){
+  const s = scores(c), stop = stopFlags(c), g = gaps(c);
+  if (stop.length) return {tone:"bad", key:"out", title:"Стоп-фактор — расставание",
+    text:`Критичная компетенция «${stop[0].n}» оценена на ${Math.min(...stop[0].vals)}. Развитию не подлежит: рекомендуем не продолжать.`};
+  if (s.total === null) return {tone:"", key:"none", title:"Данных пока нет", text:"Рекомендация появится, когда будет заполнен хотя бы один этап."};
+  if (s.total >= 75) return {tone:"good", key:"strong", title:"Сильный кандидат — ИПР на усиление",
+    text:`Итог ${s.total}%. Берём и растим: ИПР точечный, на 2–3 зоны из слабых.` + (g.length ? ` Но сверьте ${g.length} расхождения между этапами.` : "")};
+  if (s.total >= 55) return {tone:"good", key:"ipr", title:"Берём с ИПР",
+    text:`Итог ${s.total}%. База есть, просадки закрываются планом развития на 60–90 дней.`};
+  if (s.total >= 40) return {tone:"warn", key:"watch", title:"Пограничная зона — ИПР с контрольной точкой",
+    text:`Итог ${s.total}%. Берём только с жёстким ИПР и решением через 30 дней по конкретным метрикам.`};
+  return {tone:"bad", key:"out", title:"Перспектив нет",
+    text:`Итог ${s.total}%. Просадки в ядре навыка продажи: развитие дороже замены.`};
+}
+const VERDICTS = {
+  ipr:  {t:"Развиваем по ИПР", tone:"good"},
+  watch:{t:"ИПР с контрольной точкой 30 дней", tone:"warn"},
+  out:  {t:"Перспектив нет — расставание", tone:"bad"}
+};
+function buildIPR(c){
+  const weak = weakItems(c).slice(0, 5);
+  return weak.map((i, idx) => ({
+    id:i.id, action:i.dev, metric:"",
+    due:daysAhead(idx < 2 ? 30 : (idx < 4 ? 60 : 90)),
+    owner:"РОП"
+  }));
+}
+</script>
+
+<script>
+/* ============================================================
+   4. ЭКРАН ВХОДА
+   ============================================================ */
+function renderGate(){
+  $("#gate").hidden = false; $("#app").hidden = true;
+  const box = $("#demoUsers");
+  box.querySelectorAll(".demo-user").forEach(n => n.remove());
+  USERS.forEach(u => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "demo-user";
+    b.innerHTML = `<span><b>${esc(ROLES[u.role].full)}</b><br><span class="small muted">${esc(u.name)}</span></span><span class="mono small">${esc(u.login)} / ${esc(u.pass)}</span>`;
+    b.addEventListener("click", () => { $("#login").value = u.login; $("#pass").value = u.pass; $("#loginErr").textContent = ""; });
+    box.appendChild(b);
+  });
+}
+$("#loginForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const l = $("#login").value.trim().toLowerCase(), p = $("#pass").value;
+  const u = USERS.find(x => x.login === l && x.pass === p);
+  if (!u){ $("#loginErr").textContent = "Логин или пароль не подошли. Возьмите доступ из списка ниже."; return; }
+  SESSION = {login:u.login, name:u.name, role:u.role};
+  try { sessionStorage.setItem(KEY + ".s", JSON.stringify(SESSION)); } catch(err){}
+  ROUTE = {view:"list", id:null};
+  render();
+});
+$("#logout").addEventListener("click", () => {
+  SESSION = null;
+  try { sessionStorage.removeItem(KEY + ".s"); } catch(e){}
+  $("#login").value = ""; $("#pass").value = ""; $("#loginErr").textContent = "";
+  render();
+});
+
+/* ============================================================
+   5. ОБЩАЯ ОБОЛОЧКА
+   ============================================================ */
+function render(){
+  if (!SESSION){ renderGate(); return; }
+  $("#gate").hidden = true; $("#app").hidden = false;
+  $("#uName").textContent = SESSION.name;
+  $("#uRole").textContent = ROLES[SESSION.role].full;
+  $("#uAv").textContent = ROLES[SESSION.role].t;
+  const nav = [["list","Кандидаты"],["matrix","Матрица компетенций"],["about","О прототипе"]];
+  $("#nav").innerHTML = nav.map(([k,t]) =>
+    `<button data-act="nav" data-v="${k}" ${ROUTE.view===k || (k==="list"&&ROUTE.view==="cand") ? 'aria-current="page"' : ""}>${t}</button>`).join("");
+  const v = $("#view");
+  if (ROUTE.view === "cand" && cand(ROUTE.id)) v.innerHTML = viewCand(cand(ROUTE.id));
+  else if (ROUTE.view === "matrix") v.innerHTML = viewMatrix();
+  else if (ROUTE.view === "about") v.innerHTML = viewAbout();
+  else v.innerHTML = viewList();
+  window.scrollTo({top:0});
+}
+
+/* ============================================================
+   6. СПИСОК КАНДИДАТОВ
+   ============================================================ */
+function stageDots(c){
+  const cur = stage(c);
+  return STAGES.map(s => {
+    const done = s.k === "fin" ? c.decision.status === "final" : c.st[s.k].status === "submitted";
+    const active = s.k === cur && !done;
+    return `<span class="dot ${done ? "done" : ""} ${active ? "active" : ""}"><b></b>${s.t}</span>`;
+  }).join("");
+}
+function viewList(){
+  const mine = c => {
+    const st = stage(c);
+    if (c.decision.status === "final") return false;
+    if (st === "fin") return SESSION.role === "rop" || SESSION.role === "admin";
+    return STAGES.find(s => s.k === st).who === SESSION.role;
+  };
+  const sorted = [...DB.candidates].sort((a,b) => (mine(b) ? 1 : 0) - (mine(a) ? 1 : 0));
+  const canAdd = SESSION.role === "hr" || SESSION.role === "admin";
+  const myCount = DB.candidates.filter(mine).length;
+  return `
+  <div class="list-head">
+    <div>
+      <span class="eyebrow">Воронка оценки</span>
+      <h1>Кандидаты</h1>
+      <p class="muted small" style="margin-top:6px">Оценка идёт в три руки: HR на первичном интервью, РОП на сверке, оценщик на БУ — вслепую. Итог сводится в рекомендацию, решение принимает РОП.</p>
+    </div>
+    <span class="spacer"></span>
+    ${myCount ? `<span class="pill info">Ждут вас: ${myCount}</span>` : `<span class="pill mute">Для вас задач нет</span>`}
+    ${canAdd ? `<button class="btn btn-primary" data-act="add">Новый кандидат</button>` : ""}
+  </div>
+  <div class="cands">
+    ${sorted.map(c => {
+      const s = scores(c);
+      const fin = c.decision.status === "final";
+      const vd = fin ? VERDICTS[c.decision.verdict] : null;
+      return `<button class="cand" data-act="open" data-v="${c.id}" data-mine="${mine(c) ? 1 : 0}">
+        <span>
+          <span class="name">${esc(c.name)}</span><br>
+          <span class="small muted">${esc(c.pos)} · ${esc(c.src)}</span>
+        </span>
+        <span class="progress">${stageDots(c)}</span>
+        <span>${fin ? `<span class="pill ${vd.tone}">${vd.t}</span>` : (mine(c) ? `<span class="pill info">Ваш ход</span>` : `<span class="pill mute">В работе</span>`)}</span>
+        <span class="score-badge">${s.total === null ? '<span class="muted">—</span>' : s.total + "%"}</span>
+      </button>`;
+    }).join("")}
+  </div>`;
+}
+
+/* ============================================================
+   7. КАРТОЧКА КАНДИДАТА
+   ============================================================ */
+function editorStage(c){
+  const st = stage(c);
+  if (c.decision.status === "final") return null;
+  if (st === "fin") return null;
+  const owner = STAGES.find(s => s.k === st).who;
+  if (SESSION.role === owner || SESSION.role === "admin") return st;
+  return null;
+}
+function blind(c){
+  return SESSION.role === "bu" && c.st.bu.status !== "submitted";
+}
+function cell(v, extra){
+  if (v === undefined) return `<span class="sc empty" title="не оценивалось">·</span>`;
+  return `<span class="sc v${v}" ${extra || ""}>${v}</span>`;
+}
+function seg(id, role, val){
+  return `<span class="seg" role="group" aria-label="Оценка">${[0,1,2,3].map(v =>
+    `<button type="button" data-act="score" data-role="${role}" data-id="${id}" data-v="${v}" data-value="${v}" aria-pressed="${val === v}" title="${esc(SCALE[v].t)}">${v}</button>`).join("")}</span>`;
+}
+function rowComments(c, i, ed){
+  const out = [];
+  ["hr","rop","bu"].forEach(k => {
+    const t = c.st[k].cmt[i.id];
+    if (!t || k === ed) return;
+    if (k !== "bu" && blind(c)) return;
+    out.push(`<div class="comp-hint" style="color:var(--ink-2)">${ROLES[k].t}: «${esc(t)}»</div>`);
+  });
+  return out.join("");
+}
+function viewCand(c){
+  const ed = editorStage(c);
+  const st = stage(c);
+  const s = scores(c);
+  const isBlind = blind(c);
+  const rec = recommend(c);
+  const g = gaps(c), stops = stopFlags(c);
+
+  const stepper = STAGES.map(x => {
+    const done = x.k === "fin" ? c.decision.status === "final" : c.st[x.k].status === "submitted";
+    const active = x.k === st && !done;
+    const doneBy = x.k === "fin" ? c.decision : c.st[x.k];
+    return `<div class="step ${done ? "done" : ""} ${active ? "active" : ""} ${!done && !active ? "locked" : ""}">
+      <span class="n">${x.n}</span><span class="t">${x.t}</span>
+      <span class="s">${done ? `✓ ${esc(doneBy.by)}, ${esc(doneBy.at)}` : (active ? `Ждёт: ${ROLES[x.who].t}` : "Недоступно")}</span>
+    </div>`;
+  }).join("");
+
+  const rows = MATRIX.map(b => {
+    const items = b.items.map(i => {
+      const hv = c.st.hr.sc[i.id], rv = c.st.rop.sc[i.id], bv = c.st.bu.sc[i.id];
+      const eff = hireVal(c, i.id);
+      const d = (eff !== undefined && bv !== undefined) ? Math.abs(eff - bv) : null;
+      const hideHire = isBlind;
+      return `<tr>
+        <td>
+          <div class="comp-name">${esc(i.n)} ${i.crit ? '<span class="tag crit">стоп-фактор</span>' : ""} <span class="tag">вес ${i.w}</span></div>
+          <div class="comp-hint">${esc(i.hint)}</div>
+          ${rowComments(c, i, ed)}
+          ${ed && i.by.includes(ed === "rop" ? "hr" : ed) ? `<details class="rowcmt no-print" ${c.st[ed].cmt[i.id] ? "open" : ""}><summary>Комментарий ${ROLES[ed].t}</summary><textarea data-act="cmt" data-id="${i.id}" placeholder="Что именно увидели по этой компетенции">${esc(c.st[ed].cmt[i.id] || "")}</textarea></details>` : ""}
+        </td>
+        <td class="col-score">${!i.by.includes("hr") ? '<span class="muted small">не на этом этапе</span>'
+            : ed === "hr" ? seg(i.id, "hr", hv)
+            : hideHire ? '<span class="sc hidden-blind" title="Скрыто до внесения оценки БУ">?</span>' : cell(hv)}</td>
+        <td class="col-score">${!i.by.includes("hr") ? "" 
+            : ed === "rop" ? seg(i.id, "rop", rv !== undefined ? rv : hv)
+            : hideHire ? '<span class="sc hidden-blind" title="Скрыто до внесения оценки БУ">?</span>'
+            : (rv !== undefined ? `${cell(rv)} ${rv !== hv ? '<span class="tag" style="margin-left:4px">корректировка</span>' : '<span class="tag" style="margin-left:4px">подтвердил</span>'}`
+              : (c.st.rop.status === "submitted" ? '<span class="tag">подтвердил</span>' : '<span class="muted small">—</span>'))}</td>
+        <td class="col-score">${!i.by.includes("bu") ? '<span class="muted small">не на этом этапе</span>'
+            : ed === "bu" ? seg(i.id, "bu", bv) : cell(bv)}</td>
+        <td class="col-delta">${d === null ? '<span class="delta">—</span>' : `<span class="delta ${d >= 2 ? "flag" : ""}">${d >= 2 ? "▲ " : ""}${d}</span>`}</td>
+      </tr>`;
+    }).join("");
+    return `<tr class="block-row"><td colspan="5" class="blockcell"><span class="eyebrow">${esc(b.block)}</span></td></tr>${items}`;
+  }).join("");
+
+  const noteBlock = ed ? `
+    <div class="card-b no-print" style="border-top:1px solid var(--line); display:grid; gap:10px">
+      <div class="field" style="margin:0">
+        <label for="stageNote">Резюме этапа — ${esc(ROLES[ed].full)}</label>
+        <textarea id="stageNote" data-act="note" placeholder="Что увидели, на что смотреть дальше">${esc(c.st[ed].note)}</textarea>
+      </div>
+      <div class="row">
+        <button class="btn btn-primary" data-act="submitStage">${ed === "rop" ? "Подтвердить и передать на БУ" : (ed === "hr" ? "Передать РОПу" : "Внести оценку БУ")}</button>
+        <span class="small muted">${ed === "rop" ? "Не тронутые строки уходят как подтверждение оценки HR." : (ed === "bu" ? "После отправки откроются оценки HR и РОПа." : "После отправки правки доступны только админу.")}</span>
+      </div>
+    </div>` : "";
+
+  return `
+  <div class="crumbs no-print"><button class="btn btn-ghost btn-sm" data-act="nav" data-v="list">← Все кандидаты</button></div>
+  <div class="hero">
+    <div>
+      <span class="eyebrow">${esc(c.pos)} · ${esc(c.src)} · в работе с ${esc(c.created)}</span>
+      <h1>${esc(c.name)}</h1>
+      <div class="meta small muted">
+        <span>HR: ${c.st.hr.status === "submitted" ? esc(c.st.hr.by) : "—"}</span>
+        <span>РОП: ${c.st.rop.status === "submitted" ? esc(c.st.rop.by) : "—"}</span>
+        <span>БУ: ${c.st.bu.status === "submitted" ? esc(c.st.bu.by) : "—"}</span>
+      </div>
+    </div>
+    <span class="spacer"></span>
+    <div class="row no-print">
+      <button class="btn btn-sm" data-act="copy">Скопировать сводку</button>
+      <button class="btn btn-sm" data-act="print">Печать / PDF</button>
+      ${SESSION.role === "admin" && (c.st.hr.status === "submitted") ? `<button class="btn btn-sm" data-act="reopen">Вернуть на доработку</button>` : ""}
+    </div>
+  </div>
+  <div class="stepper">${stepper}</div>
+  ${isBlind ? `<div class="banner no-print" style="margin-bottom:14px">Слепая оценка: до отправки вашей оценки колонки HR и РОПа закрыты — чтобы сверка была честной.</div>` : ""}
+  <div class="layout">
+    <div style="display:grid; gap:18px">
+      <section class="card">
+        <div class="card-h">
+          <h2>Компетенции</h2>
+          <span class="spacer"></span>
+          <span class="legend small">${SCALE.map(x => `<span><b class="mono">${x.v}</b> — ${esc(x.t)}</span>`).join("")}</span>
+        </div>
+        <div class="tablewrap">
+          <table class="matrix">
+            <thead><tr><th>Компетенция</th><th>HR</th><th>РОП</th><th>БУ</th><th>Δ</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        ${noteBlock}
+        ${["hr","rop","bu"].filter(k => c.st[k].status === "submitted" && c.st[k].note && !(isBlind && k !== "bu")).map(k =>
+          `<div class="card-b" style="border-top:1px solid var(--line)"><span class="eyebrow">${esc(ROLES[k].full)} · ${esc(c.st[k].at)}</span><p style="margin-top:5px">${esc(c.st[k].note)}</p></div>`).join("")}
+      </section>
+      ${iprCard(c)}
+    </div>
+    <aside class="rail no-print">
+      ${railScores(c, s, isBlind)}
+      ${railVerdict(c, rec, g, stops, isBlind)}
+      ${railDecision(c, rec)}
+    </aside>
+  </div>`;
+}
+</script>
+
+<script>
+/* ============================================================
+   8. ПРАВЫЙ РЕЛЬС: БАЛЛЫ, РЕКОМЕНДАЦИЯ, РЕШЕНИЕ
+   ============================================================ */
+function tone(p){ return p >= 70 ? "good" : p >= 45 ? "warn" : "bad"; }
+function bar(label, p){
+  return `<div class="gauge">
+    <div class="kv" style="border:0; padding:0"><span class="k">${label}</span><span class="v">${p === null ? "—" : p + "%"}</span></div>
+    <div class="bar"><i class="${p === null ? "" : tone(p)}" style="width:${p === null ? 0 : p}%"></i></div>
+  </div>`;
+}
+function railScores(c, s, isBlind){
+  if (isBlind) return `<section class="card"><div class="card-b"><span class="eyebrow">Сводка</span>
+    <p class="small muted" style="margin-top:6px">Баллы предыдущих этапов откроются после того, как вы внесёте свою оценку.</p></div></section>`;
+  const filled = ALL.filter(i => hireVal(c, i.id) !== undefined || buVal(c, i.id) !== undefined).length;
+  return `<section class="card"><div class="card-b" style="display:grid; gap:12px">
+    <span class="eyebrow">Сводка по баллам</span>
+    ${bar("Найм (HR + РОП)", s.hire)}
+    ${bar("Оценка на БУ", s.bu)}
+    ${bar("Итог", s.total)}
+    <div>
+      <div class="kv"><span class="k">Оценено компетенций</span><span class="v">${filled} / ${ALL.length}</span></div>
+      <div class="kv"><span class="k">Расхождений ≥ 2</span><span class="v">${gaps(c).length}</span></div>
+      <div class="kv"><span class="k">Стоп-факторов</span><span class="v">${stopFlags(c).length}</span></div>
+    </div>
+  </div></section>`;
+}
+function railVerdict(c, rec, g, stops, isBlind){
+  if (isBlind) return "";
+  return `<section class="card"><div class="card-b" style="display:grid; gap:12px">
+    <span class="eyebrow">Что говорит матрица</span>
+    <div class="verdict ${rec.tone}"><h3>${esc(rec.title)}</h3><p class="small">${esc(rec.text)}</p></div>
+    ${(stops.length || g.length) ? `<div class="flags">
+      ${stops.map(f => `<div class="flagline crit"><span><b>Стоп-фактор:</b> ${esc(f.n)} — оценка ${Math.min(...f.vals)}. ${esc(c.st.bu.cmt[f.id] || c.st.hr.cmt[f.id] || "")}</span></div>`).join("")}
+      ${g.map(f => `<div class="flagline"><span><b>${esc(f.n)}</b> — найм ${f.hire}, БУ ${f.bu}</span></div>`).join("")}
+      ${g.length ? `<p class="small muted">Расхождение в 2 балла и больше — повод сверить, что именно видел каждый оценщик.</p>` : ""}
+    </div>` : `<p class="small muted">Расхождений между этапами нет.</p>`}
+  </div></section>`;
+}
+function railDecision(c, rec){
+  const canDecide = (SESSION.role === "rop" || SESSION.role === "admin");
+  if (c.decision.status === "final"){
+    const vd = VERDICTS[c.decision.verdict];
+    return `<section class="card"><div class="card-b" style="display:grid; gap:10px">
+      <span class="eyebrow">Решение принято</span>
+      <span class="pill ${vd.tone}" style="justify-self:start">${vd.t}</span>
+      <p class="small">${esc(c.decision.comment)}</p>
+      <p class="small muted">${esc(c.decision.by)} · ${esc(c.decision.at)}</p>
+      ${canDecide ? `<button class="btn btn-sm" data-act="undecide">Пересмотреть решение</button>` : ""}
+    </div></section>`;
+  }
+  if (stage(c) !== "fin") return `<section class="card"><div class="card-b">
+    <span class="eyebrow">Решение</span>
+    <p class="small muted" style="margin-top:6px">Откроется, когда все три оценки будут внесены. Сейчас ждём: ${ROLES[STAGES.find(s => s.k === stage(c)).who].full}.</p>
+  </div></section>`;
+  if (!canDecide) return `<section class="card"><div class="card-b">
+    <span class="eyebrow">Решение</span><p class="small muted" style="margin-top:6px">Все оценки собраны. Финальное решение принимает РОП.</p></div></section>`;
+  const pre = rec.key === "out" ? "out" : rec.key === "watch" ? "watch" : "ipr";
+  return `<section class="card"><div class="card-b" style="display:grid; gap:10px">
+    <span class="eyebrow">Ваше решение</span>
+    <p class="small muted">Матрица предлагает: <b>${esc(VERDICTS[pre].t)}</b>. Решение всё равно за вами — с обязательным обоснованием.</p>
+    <div style="display:grid; gap:6px">
+      ${Object.entries(VERDICTS).map(([k,v]) =>
+        `<button class="btn btn-sm" data-act="pickVerdict" data-v="${k}" style="justify-content:flex-start; ${window.__pick === k || (!window.__pick && k === pre) ? "border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent)" : ""}">${v.t}</button>`).join("")}
+    </div>
+    <div class="field" style="margin:0"><label for="decCmt">Обоснование</label><textarea id="decCmt" placeholder="Почему именно так — одна-две фразы для истории кандидата"></textarea></div>
+    <button class="btn btn-primary" data-act="decide">Зафиксировать решение</button>
+  </div></section>`;
+}
+
+/* ============================================================
+   9. ИПР / ОСНОВАНИЕ ДЛЯ РАССТАВАНИЯ
+   ============================================================ */
+function iprCard(c){
+  if (c.decision.status !== "final" || blind(c)) return "";
+  const canEdit = SESSION.role === "rop" || SESSION.role === "admin";
+  if (c.decision.verdict === "out"){
+    const weak = weakItems(c).slice(0, 6), stops = stopFlags(c);
+    return `<section class="card">
+      <div class="card-h"><h2>Основание для расставания</h2></div>
+      <div class="card-b" style="display:grid; gap:10px">
+        ${stops.map(f => `<div class="flagline crit"><span><b>${esc(f.n)}</b> — стоп-фактор, оценка ${Math.min(...f.vals)}.</span></div>`).join("")}
+        ${weak.length ? `<div><span class="eyebrow">Просевшие компетенции</span>
+          <ul style="margin:8px 0 0; padding-left:18px">${weak.map(w => `<li class="small">${esc(w.n)} — ${w.min} балл(а), вес ${w.w}</li>`).join("")}</ul></div>` : ""}
+        <p class="small muted">Комментарий РОПа: ${esc(c.decision.comment)}</p>
+      </div></section>`;
+  }
+  const items = c.ipr.items;
+  return `<section class="card">
+    <div class="card-h"><h2>Индивидуальный план развития</h2><span class="spacer"></span>
+      ${canEdit ? `<button class="btn btn-sm no-print" data-act="genIpr">${items.length ? "Пересобрать черновик" : "Собрать черновик по просадкам"}</button>` : ""}
+    </div>
+    <div class="card-b" style="display:grid; gap:14px">
+      <div class="field" style="margin:0"><label for="iprGoal">Цель плана</label>
+        <textarea id="iprGoal" data-act="iprGoal" ${canEdit ? "" : "readonly"} placeholder="Например: выйти на план 100% к третьему месяцу">${esc(c.ipr.goal)}</textarea></div>
+      ${items.length ? `<div class="ipr-grid">${items.map((it, idx) => {
+        const comp = BY_ID[it.id];
+        return `<div class="ipr-item">
+          <div class="row"><span class="eyebrow">Пункт ${idx+1}</span><span class="tag">${esc(comp ? comp.block : "")}</span><span class="spacer"></span>
+            ${canEdit ? `<button class="btn btn-ghost btn-sm no-print" data-act="delIpr" data-v="${idx}">Убрать</button>` : ""}</div>
+          <b>${esc(comp ? comp.n : it.id)}</b>
+          <div class="field" style="margin:0"><label>Развивающее действие</label>
+            <textarea data-act="iprField" data-f="action" data-v="${idx}" ${canEdit ? "" : "readonly"}>${esc(it.action)}</textarea></div>
+          <div class="ipr-meta">
+            <div class="field" style="margin:0"><label>Критерий выполнения</label>
+              <input type="text" data-act="iprField" data-f="metric" data-v="${idx}" value="${esc(it.metric)}" ${canEdit ? "" : "readonly"} placeholder="Как поймём, что закрыто"></div>
+            <div class="field" style="margin:0"><label>Срок</label>
+              <input type="date" data-act="iprField" data-f="due" data-v="${idx}" value="${esc(it.due)}" ${canEdit ? "" : "readonly"}></div>
+          </div>
+        </div>`;
+      }).join("")}</div>` : `<p class="small muted">Пунктов пока нет. Черновик собирается из компетенций с оценкой 0–1, отсортированных по весу.</p>`}
+      <div class="ipr-meta">
+        <div class="field" style="margin:0"><label for="iprChk">Контрольная точка</label>
+          <input id="iprChk" type="date" data-act="iprChk" value="${esc(c.ipr.checkpoint)}" ${canEdit ? "" : "readonly"}></div>
+      </div>
+    </div></section>`;
+}
+
+/* ============================================================
+   10. СПРАВОЧНИК И ПОЯСНЕНИЕ
+   ============================================================ */
+function viewMatrix(){
+  return `
+  <div class="list-head"><div>
+    <span class="eyebrow">Справочник</span><h1>Матрица компетенций сейлза</h1>
+    <p class="muted small" style="margin-top:6px">Черновик: 24 компетенции в шести блоках. Вес задаёт долю в итоговом балле, стоп-фактор перекрывает любой балл, столбец «кто оценивает» разводит этапы, чтобы HR не оценивал то, что видно только в деле.</p>
+  </div></div>
+  <section class="card"><div class="tablewrap"><table class="matrix">
+    <thead><tr><th>Компетенция</th><th>Вес</th><th>Кто оценивает</th><th>Развивающее действие</th></tr></thead>
+    <tbody>${MATRIX.map(b => `<tr class="block-row"><td colspan="4" class="blockcell"><span class="eyebrow">${esc(b.block)}</span></td></tr>` +
+      b.items.map(i => `<tr>
+        <td><div class="comp-name">${esc(i.n)} ${i.crit ? '<span class="tag crit">стоп-фактор</span>' : ""}</div><div class="comp-hint">${esc(i.hint)}</div></td>
+        <td class="mono">${i.w}</td>
+        <td class="small">${i.by.map(r => ROLES[r].t).join(" · ")}${i.by.includes("hr") ? " · РОП" : ""}</td>
+        <td class="small" style="max-width:34ch">${esc(i.dev)}</td>
+      </tr>`).join("")).join("")}</tbody>
+  </table></div></section>`;
+}
+function viewAbout(){
+  return `
+  <div class="list-head"><div><span class="eyebrow">Прототип</span><h1>Как это устроено</h1></div></div>
+  <div class="layout"><div style="display:grid; gap:18px">
+    <section class="card"><div class="card-b" style="display:grid; gap:12px">
+      <h2>Логика процесса</h2>
+      <ol style="margin:0; padding-left:20px; display:grid; gap:8px">
+        <li><b>HR на первичном интервью</b> оценивает компетенции, видимые в разговоре (мотивация, коммуникация, дисциплина, часть навыка продажи).</li>
+        <li><b>РОП сверяет</b>: каждая строка либо подтверждается, либо перебивается своей оценкой с комментарием. Нетронутые строки уходят как «подтвердил».</li>
+        <li><b>БУ оценивает вслепую</b> — до отправки своей оценки колонки HR и РОПа закрыты, чтобы не подстраиваться под уже поставленные баллы.</li>
+        <li><b>Итог</b>: система считает баллы с весами, подсвечивает расхождения ≥ 2 и стоп-факторы, предлагает вердикт. Решение фиксирует РОП с обоснованием, и из просевших компетенций собирается черновик ИПР.</li>
+      </ol>
+    </div></section>
+    <section class="card"><div class="card-b" style="display:grid; gap:10px">
+      <h2>Как считается балл</h2>
+      <p class="small">По каждой шкале: <span class="mono">Σ(оценка × вес) / Σ(3 × вес)</span>. Отдельно «найм» (оценка HR с правками РОПа) и «БУ», итог — среднее из заполненных. Пороги вердикта: ≥ 75% — сильный, 55–74% — берём с ИПР, 40–54% — пограничная зона, ниже 40% — перспектив нет. Любой стоп-фактор с оценкой 0–1 перекрывает балл.</p>
+    </div></section>
+    <section class="card"><div class="card-b" style="display:grid; gap:10px">
+      <h2>Что здесь условно и требует вашего решения</h2>
+      <ul style="margin:0; padding-left:20px; display:grid; gap:6px" class="small">
+        <li>«БУ» трактуется как отдельный этап оценки в деле после сверки с РОПом — если это часть адаптации уже нанятого, поменяем формулировки вердиктов.</li>
+        <li>Шкала 0–3, веса 1–3 и пороги вердикта — рабочая гипотеза, настраиваются в справочнике.</li>
+        <li>Стоп-фактор пока один — «Честность и надёжность».</li>
+        <li>Слепая оценка на БУ включена по умолчанию.</li>
+        <li>Данные лежат в браузере (localStorage), общего сервера нет: чтобы пройти все роли, выходите и заходите под разными доступами в одном браузере. Реальные персданные вносить нельзя.</li>
+      </ul>
+    </div></section>
+    <section class="card"><div class="card-b row">
+      <button class="btn" data-act="reset">Сбросить демо-данные</button>
+      <span class="small muted">Вернёт пять демо-кандидатов в исходные состояния.</span>
+    </div></section>
+  </div><aside class="rail">
+    <section class="card"><div class="card-b" style="display:grid; gap:8px">
+      <span class="eyebrow">Роли и доступы</span>
+      ${USERS.map(u => `<div class="kv"><span class="k">${esc(ROLES[u.role].full)}</span><span class="v small">${esc(u.login)} / ${esc(u.pass)}</span></div>`).join("")}
+    </div></section>
+  </aside></div>`;
+}
+</script>
+
+<script>
+/* ============================================================
+   11. ДЕЙСТВИЯ
+   ============================================================ */
+const today = () => new Date().toISOString().slice(0,10);
+
+function missingCount(c, role){
+  return ALL.filter(i => i.by.includes(role) && c.st[role].sc[i.id] === undefined).length;
+}
+function summaryText(c){
+  const s = scores(c), rec = recommend(c), g = gaps(c);
+  const L = [];
+  L.push(`${c.name} — ${c.pos} (${c.src})`);
+  L.push(`Найм: ${s.hire ?? "—"}% · БУ: ${s.bu ?? "—"}% · Итог: ${s.total ?? "—"}%`);
+  L.push(`Рекомендация матрицы: ${rec.title}`);
+  if (c.decision.status === "final") L.push(`Решение РОПа: ${VERDICTS[c.decision.verdict].t} — ${c.decision.comment}`);
+  if (g.length){ L.push("", "Расхождения:"); g.forEach(x => L.push(`  ${x.n}: найм ${x.hire}, БУ ${x.bu}`)); }
+  const w = weakItems(c);
+  if (w.length){ L.push("", "Просадки:"); w.forEach(x => L.push(`  ${x.n} — ${x.min} (вес ${x.w})`)); }
+  ["hr","rop","bu"].forEach(k => { if (c.st[k].note) L.push("", `${ROLES[k].full}: ${c.st[k].note}`); });
+  if (c.ipr.items.length){
+    L.push("", `ИПР (контрольная точка ${c.ipr.checkpoint}):`);
+    c.ipr.items.forEach((it,i) => L.push(`  ${i+1}. ${BY_ID[it.id] ? BY_ID[it.id].n : it.id} — ${it.action} · до ${it.due}${it.metric ? " · критерий: " + it.metric : ""}`));
+  }
+  return L.join("\n");
+}
+function copyText(t){
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(() => toast("Сводка скопирована")).catch(() => fallbackCopy(t));
+  } else fallbackCopy(t);
+}
+function fallbackCopy(t){
+  const ta = document.createElement("textarea");
+  ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); toast("Сводка скопирована"); } catch(e){ toast("Скопировать не вышло — выделите текст вручную"); }
+  ta.remove();
+}
+
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]");
+  if (!el || el.tagName === "TEXTAREA" || el.tagName === "INPUT") return;
+  const act = el.dataset.act, v = el.dataset.v;
+  const c = ROUTE.id ? cand(ROUTE.id) : null;
+
+  if (act === "nav"){ ROUTE = {view:v, id:null}; window.__pick = null; render(); }
+  else if (act === "open"){ ROUTE = {view:"cand", id:v}; window.__pick = null; render(); }
+  else if (act === "add"){ window.__addOpen = true; render(); }
+  else if (act === "addSave"){
+    const name = ($("#newName").value || "").trim();
+    if (!name){ toast("Впишите имя кандидата"); return; }
+    const nc = newCand(name, ($("#newPos").value || "Менеджер по продажам").trim(), ($("#newSrc").value || "—").trim());
+    nc.created = today();
+    DB.candidates.unshift(nc); save();
+    window.__addOpen = false; ROUTE = {view:"cand", id:nc.id}; render();
+  }
+  else if (act === "addCancel"){ window.__addOpen = false; render(); }
+  else if (act === "score" && c){
+    const role = el.dataset.role, id = el.dataset.id, val = Number(el.dataset.value);
+    if (c.st[role].sc[id] === val && role !== "rop") delete c.st[role].sc[id];
+    else c.st[role].sc[id] = val;
+    save(); render();
+  }
+  else if (act === "submitStage" && c){
+    const ed = editorStage(c);
+    if (!ed) return;
+    if (ed !== "rop"){
+      const miss = missingCount(c, ed);
+      if (miss){ toast(`Не оценено компетенций: ${miss}`); return; }
+    }
+    c.st[ed].status = "submitted"; c.st[ed].by = SESSION.name; c.st[ed].at = today();
+    save(); render(); toast(ed === "bu" ? "Оценка БУ внесена, оценки коллег открыты" : "Этап передан дальше");
+  }
+  else if (act === "pickVerdict"){
+    const t = $("#decCmt"); if (t && c) window.__decCmt = t.value;
+    window.__pick = v; render();
+    const t2 = $("#decCmt"); if (t2 && window.__decCmt) t2.value = window.__decCmt;
+  }
+  else if (act === "decide" && c){
+    const rec = recommend(c);
+    const pre = rec.key === "out" ? "out" : rec.key === "watch" ? "watch" : "ipr";
+    const verdict = window.__pick || pre;
+    const cmt = ($("#decCmt").value || "").trim();
+    if (!cmt){ toast("Без обоснования решение не фиксируем"); return; }
+    c.decision = {status:"final", verdict, comment:cmt, by:SESSION.name, at:today()};
+    if (verdict !== "out" && !c.ipr.items.length) c.ipr.items = buildIPR(c);
+    window.__pick = null; window.__decCmt = "";
+    save(); render(); toast("Решение зафиксировано");
+  }
+  else if (act === "undecide" && c){ c.decision = {status:"pending", verdict:"", comment:"", by:"", at:""}; save(); render(); }
+  else if (act === "reopen" && c){
+    const last = ["bu","rop","hr"].find(k => c.st[k].status === "submitted");
+    if (!last) return;
+    c.st[last].status = "pending"; c.decision = {status:"pending", verdict:"", comment:"", by:"", at:""};
+    save(); render(); toast(`Этап «${STAGES.find(s => s.k === last).t}» возвращён на доработку`);
+  }
+  else if (act === "genIpr" && c){ c.ipr.items = buildIPR(c); save(); render(); toast("Черновик ИПР собран по просадкам"); }
+  else if (act === "delIpr" && c){ c.ipr.items.splice(Number(v), 1); save(); render(); }
+  else if (act === "copy" && c){ copyText(summaryText(c)); }
+  else if (act === "print"){ window.print(); }
+  else if (act === "reset"){ DB = seed(); save(); ROUTE = {view:"list", id:null}; render(); toast("Демо-данные сброшены"); }
+});
+
+document.addEventListener("change", e => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const c = ROUTE.id ? cand(ROUTE.id) : null;
+  if (!c) return;
+  const act = el.dataset.act;
+  if (act === "cmt"){
+    const ed = editorStage(c); if (!ed) return;
+    const t = el.value.trim();
+    if (t) c.st[ed].cmt[el.dataset.id] = t; else delete c.st[ed].cmt[el.dataset.id];
+    save();
+  }
+  else if (act === "note"){ const ed = editorStage(c); if (ed){ c.st[ed].note = el.value; save(); } }
+  else if (act === "iprGoal"){ c.ipr.goal = el.value; save(); }
+  else if (act === "iprChk"){ c.ipr.checkpoint = el.value; save(); }
+  else if (act === "iprField"){
+    const it = c.ipr.items[Number(el.dataset.v)];
+    if (it){ it[el.dataset.f] = el.value; save(); }
+  }
+});
+
+/* форма нового кандидата в списке */
+const _viewList = viewList;
+viewList = function(){
+  const form = window.__addOpen ? `
+    <section class="card" style="margin-bottom:14px"><div class="card-b" style="display:grid; gap:10px">
+      <span class="eyebrow">Новый кандидат</span>
+      <div class="ipr-meta" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="field" style="margin:0"><label for="newName">Имя</label><input id="newName" type="text" placeholder="Имя и фамилия"></div>
+        <div class="field" style="margin:0"><label for="newPos">Позиция</label><input id="newPos" type="text" value="Менеджер по продажам"></div>
+        <div class="field" style="margin:0"><label for="newSrc">Источник</label><input id="newSrc" type="text" placeholder="hh.ru, рекомендация…"></div>
+      </div>
+      <div class="row"><button class="btn btn-primary" data-act="addSave">Создать карточку</button>
+      <button class="btn btn-ghost" data-act="addCancel">Отмена</button></div>
+    </div></section>` : "";
+  return form + _viewList();
+};
+
+render();
+</script>
