@@ -304,19 +304,19 @@ const BY_ID = Object.fromEntries(ALL.map(i => [i.id, i]));
 const ROLES = {
   hr:    {t:"HR", full:"HR-специалист", stage:"hr"},
   rop:   {t:"РОП", full:"Руководитель отдела продаж", stage:"rop"},
-  bu:    {t:"БУ", full:"Оценщик на БУ", stage:"bu"},
+  bu:    {t:"БУ", full:"Тренер Биржевого университета", stage:"bu"},
   admin: {t:"Админ", full:"Администратор процесса", stage:null}
 };
 const STAGES = [
-  {k:"hr",  n:"Этап 1", t:"Первичное интервью", who:"hr",  d:"HR отмечает выявленные компетенции"},
-  {k:"rop", n:"Этап 2", t:"Сверка с РОПом",     who:"rop", d:"РОП подтверждает или корректирует"},
-  {k:"bu",  n:"Этап 3", t:"Оценка на БУ",       who:"bu",  d:"Слепая оценка в деле"},
-  {k:"fin", n:"Этап 4", t:"Решение",            who:"rop", d:"ИПР или расставание"}
+  {k:"hr",  n:"Этап 1", t:"Первичное интервью",     who:"hr",  d:"HR отмечает выявленные компетенции"},
+  {k:"rop", n:"Этап 2", t:"Сверка с РОПом",         who:"rop", d:"РОП подтверждает оценку и берёт в команду"},
+  {k:"bu",  n:"Этап 3", t:"Биржевой университет",   who:"bu",  d:"Оценка на интенсиве, вслепую"},
+  {k:"fin", n:"Этап 4", t:"Решение по итогам БУ",   who:"rop", d:"ИПР или расставание"}
 ];
 const USERS = [
   {login:"hr",    pass:"demo", name:"Ольга Тимина",   role:"hr"},
   {login:"rop",   pass:"demo", name:"Сергей Лыков",   role:"rop"},
-  {login:"bu",    pass:"demo", name:"Никита Бельских",role:"bu"},
+  {login:"bu",    pass:"demo", name:"Никита Бельских", role:"bu"},
   {login:"admin", pass:"demo", name:"Админ процесса", role:"admin"}
 ];
 </script>
@@ -325,7 +325,7 @@ const USERS = [
 /* ============================================================
    2. ХРАНИЛИЩЕ И ДЕМО-ДАННЫЕ
    ============================================================ */
-const KEY = "ms.v1";
+const KEY = "ms.v2";
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -348,6 +348,7 @@ function daysAhead(n){ const d = new Date(); d.setDate(d.getDate()+n); return d.
 function emptyStage(){ return {status:"pending", sc:{}, cmt:{}, note:"", by:"", at:""}; }
 function newCand(name, pos, src){
   return {id:uid(), name, pos, src, created:daysAgo(1),
+    emp:{start:"", stream:"", mentor:""},
     st:{hr:emptyStage(), rop:emptyStage(), bu:emptyStage()},
     decision:{status:"pending", verdict:"", comment:"", by:"", at:""},
     ipr:{goal:"", checkpoint:daysAhead(30), items:[]}};
@@ -364,23 +365,26 @@ function seed(){
   const c3 = newCand("Артём Дроздов", "Менеджер по продажам", "Telegram-канал");
   c3.created = daysAgo(7);
   c3.st.hr = {status:"submitted", sc:gen(23,"hr",2.1), cmt:{}, note:"Опыт 2 года в рознице, в B2B не работал. Мотивация — деньги и рост.", by:"Ольга Тимина", at:daysAgo(6)};
+  c3.emp = {start:daysAgo(4), stream:"Поток №14", mentor:"Сергей Лыков"};
   c3.st.rop = {status:"submitted", sc:{s1:1, c2:2}, cmt:{s1:"На кейсе не квалифицировал: сразу ушёл в презентацию."}, note:"С мотивацией согласен, навык квалификации переоценён.", by:"Сергей Лыков", at:daysAgo(5)};
 
   const c4 = newCand("Марина Швец", "Старший менеджер", "Рекомендация");
   c4.created = daysAgo(14);
   c4.st.hr = {status:"submitted", sc:gen(37,"hr",2.5), cmt:{}, note:"Сильное интервью, много цифр, уверенная речь.", by:"Ольга Тимина", at:daysAgo(13)};
-  c4.st.rop = {status:"submitted", sc:{}, cmt:{}, note:"С оценкой HR согласен полностью.", by:"Сергей Лыков", at:daysAgo(12)};
-  c4.st.bu  = {status:"submitted", sc:gen(41,"bu",1.6), cmt:{s3:"На возражении «дорого» дважды дала скидку без обмена."}, note:"В деле слабее, чем на интервью: сильная самопрезентация, но техника проседает.", by:"Никита Бельских", at:daysAgo(4)};
+  c4.emp = {start:daysAgo(11), stream:"Поток №13", mentor:"Сергей Лыков"};
+  c4.st.rop = {status:"submitted", sc:{}, cmt:{}, note:"С оценкой HR согласен полностью, выводим.", by:"Сергей Лыков", at:daysAgo(12)};
+  c4.st.bu  = {status:"submitted", sc:gen(41,"bu",1.6), cmt:{s3:"На тренажёре возражений дважды дала скидку без обмена."}, note:"На интенсиве слабее, чем на интервью: сильная самопрезентация, но техника проседает.", by:"Никита Бельских", at:daysAgo(4)};
 
   const c5 = newCand("Павел Гуров", "Менеджер по продажам", "hh.ru");
   c5.created = daysAgo(21);
   c5.st.hr = {status:"submitted", sc:gen(53,"hr",2.2), cmt:{}, note:"Резюме отличное, проверяли рекомендации.", by:"Ольга Тимина", at:daysAgo(20)};
-  c5.st.rop = {status:"submitted", sc:{}, cmt:{}, note:"Ок, идём дальше.", by:"Сергей Лыков", at:daysAgo(19)};
+  c5.emp = {start:daysAgo(18), stream:"Поток №12", mentor:"Никита Бельских"};
+  c5.st.rop = {status:"submitted", sc:{}, cmt:{}, note:"Ок, выводим на поток.", by:"Сергей Лыков", at:daysAgo(19)};
   const buSc = gen(59,"bu",1.5); buSc.l1 = 0; buSc.s4 = 1;
-  c5.st.bu = {status:"submitted", sc:buSc, cmt:{l1:"Приписал себе две чужие сделки, при проверке не признал."}, note:"Стоп-фактор по надёжности, дальше не смотрим.", by:"Никита Бельских", at:daysAgo(10)};
-  c5.decision = {status:"final", verdict:"out", comment:"Стоп-фактор по честности подтверждён на БУ. Расставание, в резерв не заносим.", by:"Сергей Лыков", at:daysAgo(9)};
+  c5.st.bu = {status:"submitted", sc:buSc, cmt:{l1:"Приписал себе две чужие сделки на разборе, при проверке не признал."}, note:"Стоп-фактор по надёжности, программу не доучиваем.", by:"Никита Бельских", at:daysAgo(10)};
+  c5.decision = {status:"final", verdict:"out", comment:"Стоп-фактор по честности подтверждён на БУ. Расстаёмся на испытательном, в резерв не заносим.", by:"Сергей Лыков", at:daysAgo(9)};
 
-  return {candidates:[c1, c2, c3, c4, c5], v:1};
+  return {candidates:[c1, c2, c3, c4, c5], v:2};
 }
 
 let DB = safeGet() || seed();
@@ -444,21 +448,21 @@ function stage(c){
 function recommend(c){
   const s = scores(c), stop = stopFlags(c), g = gaps(c);
   if (stop.length) return {tone:"bad", key:"out", title:"Стоп-фактор — расставание",
-    text:`Критичная компетенция «${stop[0].n}» оценена на ${Math.min(...stop[0].vals)}. Развитию не подлежит: рекомендуем не продолжать.`};
+    text:`Критичная компетенция «${stop[0].n}» оценена на ${Math.min(...stop[0].vals)}. Развитию не подлежит: рекомендуем расстаться на испытательном.`};
   if (s.total === null) return {tone:"", key:"none", title:"Данных пока нет", text:"Рекомендация появится, когда будет заполнен хотя бы один этап."};
-  if (s.total >= 75) return {tone:"good", key:"strong", title:"Сильный кандидат — ИПР на усиление",
-    text:`Итог ${s.total}%. Берём и растим: ИПР точечный, на 2–3 зоны из слабых.` + (g.length ? ` Но сверьте ${g.length} расхождения между этапами.` : "")};
-  if (s.total >= 55) return {tone:"good", key:"ipr", title:"Берём с ИПР",
+  if (s.total >= 75) return {tone:"good", key:"strong", title:"Сильный старт — ИПР на усиление",
+    text:`Итог ${s.total}%. Оставляем и растим: ИПР точечный, на 2–3 зоны из слабых.` + (g.length ? ` Но сверьте ${g.length} расхождения между этапами.` : "")};
+  if (s.total >= 55) return {tone:"good", key:"ipr", title:"Оставляем, развиваем по ИПР",
     text:`Итог ${s.total}%. База есть, просадки закрываются планом развития на 60–90 дней.`};
   if (s.total >= 40) return {tone:"warn", key:"watch", title:"Пограничная зона — ИПР с контрольной точкой",
-    text:`Итог ${s.total}%. Берём только с жёстким ИПР и решением через 30 дней по конкретным метрикам.`};
+    text:`Итог ${s.total}%. Оставляем только с жёстким ИПР и пересмотром через 30 дней по конкретным метрикам.`};
   return {tone:"bad", key:"out", title:"Перспектив нет",
-    text:`Итог ${s.total}%. Просадки в ядре навыка продажи: развитие дороже замены.`};
+    text:`Итог ${s.total}%. Просадки в ядре навыка продажи: доучивание дороже замены, расстаёмся на испытательном.`};
 }
 const VERDICTS = {
   ipr:  {t:"Развиваем по ИПР", tone:"good"},
   watch:{t:"ИПР с контрольной точкой 30 дней", tone:"warn"},
-  out:  {t:"Перспектив нет — расставание", tone:"bad"}
+  out:  {t:"Перспектив нет — расстаёмся", tone:"bad"}
 };
 function buildIPR(c){
   const weak = weakItems(c).slice(0, 5);
@@ -512,7 +516,7 @@ function render(){
   $("#uName").textContent = SESSION.name;
   $("#uRole").textContent = ROLES[SESSION.role].full;
   $("#uAv").textContent = ROLES[SESSION.role].t;
-  const nav = [["list","Кандидаты"],["matrix","Матрица компетенций"],["about","О прототипе"]];
+  const nav = [["list","Оценка"],["matrix","Матрица компетенций"],["about","О прототипе"]];
   $("#nav").innerHTML = nav.map(([k,t]) =>
     `<button data-act="nav" data-v="${k}" ${ROUTE.view===k || (k==="list"&&ROUTE.view==="cand") ? 'aria-current="page"' : ""}>${t}</button>`).join("");
   const v = $("#view");
@@ -534,6 +538,10 @@ function stageDots(c){
     return `<span class="dot ${done ? "done" : ""} ${active ? "active" : ""}"><b></b>${s.t}</span>`;
   }).join("");
 }
+function statusWord(c){
+  const st = stage(c);
+  return st === "hr" ? "Кандидат" : st === "rop" ? "Ждёт сверки" : st === "bu" ? "На БУ" : "Ждёт решения";
+}
 function viewList(){
   const mine = c => {
     const st = stage(c);
@@ -547,9 +555,9 @@ function viewList(){
   return `
   <div class="list-head">
     <div>
-      <span class="eyebrow">Воронка оценки</span>
-      <h1>Кандидаты</h1>
-      <p class="muted small" style="margin-top:6px">Оценка идёт в три руки: HR на первичном интервью, РОП на сверке, оценщик на БУ — вслепую. Итог сводится в рекомендацию, решение принимает РОП.</p>
+      <span class="eyebrow">Путь от интервью до испытательного</span>
+      <h1>Кандидаты и новички</h1>
+      <p class="muted small" style="margin-top:6px">Оценка идёт в три руки: HR на первичном интервью, РОП на сверке, тренеры Биржевого университета — вслепую, уже на вышедшем сотруднике. Итог сводится в рекомендацию: ИПР или расставание на испытательном.</p>
     </div>
     <span class="spacer"></span>
     ${myCount ? `<span class="pill info">Ждут вас: ${myCount}</span>` : `<span class="pill mute">Для вас задач нет</span>`}
@@ -566,7 +574,7 @@ function viewList(){
           <span class="small muted">${esc(c.pos)} · ${esc(c.src)}</span>
         </span>
         <span class="progress">${stageDots(c)}</span>
-        <span>${fin ? `<span class="pill ${vd.tone}">${vd.t}</span>` : (mine(c) ? `<span class="pill info">Ваш ход</span>` : `<span class="pill mute">В работе</span>`)}</span>
+        <span>${fin ? `<span class="pill ${vd.tone}">${vd.t}</span>` : (mine(c) ? `<span class="pill info">Ваш ход</span>` : `<span class="pill mute">${statusWord(c)}</span>`)}</span>
         <span class="score-badge">${s.total === null ? '<span class="muted">—</span>' : s.total + "%"}</span>
       </button>`;
     }).join("")}
@@ -583,6 +591,23 @@ function editorStage(c){
   const owner = STAGES.find(s => s.k === st).who;
   if (SESSION.role === owner || SESSION.role === "admin") return st;
   return null;
+}
+function emp(c){ if (!c.emp) c.emp = {start:"", stream:"", mentor:""}; return c.emp; }
+function empCard(c){
+  if (c.st.hr.status !== "submitted") return "";
+  const canEdit = SESSION.role === "rop" || SESSION.role === "hr" || SESSION.role === "admin";
+  const e = emp(c);
+  return `<section class="card"><div class="card-b" style="display:grid; gap:10px">
+    <span class="eyebrow">Выход на работу и поток БУ</span>
+    <div class="ipr-meta" style="grid-template-columns:150px 1fr 1fr">
+      <div class="field" style="margin:0"><label>Дата выхода</label>
+        <input type="date" data-act="empField" data-f="start" value="${esc(e.start)}" ${canEdit ? "" : "readonly"}></div>
+      <div class="field" style="margin:0"><label>Поток БУ</label>
+        <input type="text" data-act="empField" data-f="stream" value="${esc(e.stream)}" ${canEdit ? "" : "readonly"} placeholder="например, Поток №14"></div>
+      <div class="field" style="margin:0"><label>Наставник</label>
+        <input type="text" data-act="empField" data-f="mentor" value="${esc(e.mentor)}" ${canEdit ? "" : "readonly"} placeholder="кто ведёт на испытательном"></div>
+    </div>
+  </div></section>`;
 }
 function blind(c){
   return SESSION.role === "bu" && c.st.bu.status !== "submitted";
@@ -659,21 +684,23 @@ function viewCand(c){
         <textarea id="stageNote" data-act="note" placeholder="Что увидели, на что смотреть дальше">${esc(c.st[ed].note)}</textarea>
       </div>
       <div class="row">
-        <button class="btn btn-primary" data-act="submitStage">${ed === "rop" ? "Подтвердить и передать на БУ" : (ed === "hr" ? "Передать РОПу" : "Внести оценку БУ")}</button>
-        <span class="small muted">${ed === "rop" ? "Не тронутые строки уходят как подтверждение оценки HR." : (ed === "bu" ? "После отправки откроются оценки HR и РОПа." : "После отправки правки доступны только админу.")}</span>
+        <button class="btn btn-primary" data-act="submitStage">${ed === "rop" ? "Подтвердить и вывести на БУ" : (ed === "hr" ? "Передать РОПу" : "Внести оценку по итогам БУ")}</button>
+        <span class="small muted">${ed === "rop" ? "Не тронутые строки уходят как подтверждение оценки HR. Отправка означает: берём в команду и ставим на поток БУ." : (ed === "bu" ? "После отправки откроются оценки HR и РОПа." : "После отправки правки доступны только админу.")}</span>
       </div>
     </div>` : "";
 
   return `
-  <div class="crumbs no-print"><button class="btn btn-ghost btn-sm" data-act="nav" data-v="list">← Все кандидаты</button></div>
+  <div class="crumbs no-print"><button class="btn btn-ghost btn-sm" data-act="nav" data-v="list">← К списку</button></div>
   <div class="hero">
     <div>
-      <span class="eyebrow">${esc(c.pos)} · ${esc(c.src)} · в работе с ${esc(c.created)}</span>
+      <span class="eyebrow">${esc(c.pos)} · ${esc(c.src)} · ${stage(c) === "hr" || stage(c) === "rop" ? "кандидат с " + esc(c.created) : "в компании с " + esc(emp(c).start || c.created)}</span>
       <h1>${esc(c.name)}</h1>
       <div class="meta small muted">
         <span>HR: ${c.st.hr.status === "submitted" ? esc(c.st.hr.by) : "—"}</span>
         <span>РОП: ${c.st.rop.status === "submitted" ? esc(c.st.rop.by) : "—"}</span>
         <span>БУ: ${c.st.bu.status === "submitted" ? esc(c.st.bu.by) : "—"}</span>
+        ${emp(c).stream ? `<span>Поток БУ: ${esc(emp(c).stream)}</span>` : ""}
+        ${emp(c).mentor ? `<span>Наставник: ${esc(emp(c).mentor)}</span>` : ""}
       </div>
     </div>
     <span class="spacer"></span>
@@ -684,9 +711,10 @@ function viewCand(c){
     </div>
   </div>
   <div class="stepper">${stepper}</div>
-  ${isBlind ? `<div class="banner no-print" style="margin-bottom:14px">Слепая оценка: до отправки вашей оценки колонки HR и РОПа закрыты — чтобы сверка была честной.</div>` : ""}
+  ${isBlind ? `<div class="banner no-print" style="margin-bottom:14px">Слепая оценка на интенсиве: до отправки вашей оценки колонки HR и РОПа закрыты — чтобы сверка была честной, а не подгонкой под чужие баллы.</div>` : ""}
   <div class="layout">
     <div style="display:grid; gap:18px">
+      ${empCard(c)}
       <section class="card">
         <div class="card-h">
           <h2>Компетенции</h2>
@@ -767,10 +795,10 @@ function railDecision(c, rec){
   }
   if (stage(c) !== "fin") return `<section class="card"><div class="card-b">
     <span class="eyebrow">Решение</span>
-    <p class="small muted" style="margin-top:6px">Откроется, когда все три оценки будут внесены. Сейчас ждём: ${ROLES[STAGES.find(s => s.k === stage(c)).who].full}.</p>
+    <p class="small muted" style="margin-top:6px">Откроется, когда сотрудник пройдёт БУ и будут внесены все три оценки. Сейчас ждём: ${ROLES[STAGES.find(s => s.k === stage(c)).who].full}.</p>
   </div></section>`;
   if (!canDecide) return `<section class="card"><div class="card-b">
-    <span class="eyebrow">Решение</span><p class="small muted" style="margin-top:6px">Все оценки собраны. Финальное решение принимает РОП.</p></div></section>`;
+    <span class="eyebrow">Решение</span><p class="small muted" style="margin-top:6px">Все оценки собраны. Решение по итогам испытательного принимает РОП.</p></div></section>`;
   const pre = rec.key === "out" ? "out" : rec.key === "watch" ? "watch" : "ipr";
   return `<section class="card"><div class="card-b" style="display:grid; gap:10px">
     <span class="eyebrow">Ваше решение</span>
@@ -839,7 +867,7 @@ function viewMatrix(){
   return `
   <div class="list-head"><div>
     <span class="eyebrow">Справочник</span><h1>Матрица компетенций сейлза</h1>
-    <p class="muted small" style="margin-top:6px">Черновик: 24 компетенции в шести блоках. Вес задаёт долю в итоговом балле, стоп-фактор перекрывает любой балл, столбец «кто оценивает» разводит этапы, чтобы HR не оценивал то, что видно только в деле.</p>
+    <p class="muted small" style="margin-top:6px">Черновик: 24 компетенции в шести блоках. Вес задаёт долю в итоговом балле, стоп-фактор перекрывает любой балл, столбец «кто оценивает» разводит этапы, чтобы HR не оценивал то, что видно только на интенсиве и в работе.</p>
   </div></div>
   <section class="card"><div class="tablewrap"><table class="matrix">
     <thead><tr><th>Компетенция</th><th>Вес</th><th>Кто оценивает</th><th>Развивающее действие</th></tr></thead>
@@ -860,22 +888,24 @@ function viewAbout(){
       <h2>Логика процесса</h2>
       <ol style="margin:0; padding-left:20px; display:grid; gap:8px">
         <li><b>HR на первичном интервью</b> оценивает компетенции, видимые в разговоре (мотивация, коммуникация, дисциплина, часть навыка продажи).</li>
-        <li><b>РОП сверяет</b>: каждая строка либо подтверждается, либо перебивается своей оценкой с комментарием. Нетронутые строки уходят как «подтвердил».</li>
-        <li><b>БУ оценивает вслепую</b> — до отправки своей оценки колонки HR и РОПа закрыты, чтобы не подстраиваться под уже поставленные баллы.</li>
-        <li><b>Итог</b>: система считает баллы с весами, подсвечивает расхождения ≥ 2 и стоп-факторы, предлагает вердикт. Решение фиксирует РОП с обоснованием, и из просевших компетенций собирается черновик ИПР.</li>
+        <li><b>РОП сверяет</b>: каждая строка либо подтверждается, либо перебивается своей оценкой с комментарием. Нетронутые строки уходят как «подтвердил». Отправка этапа означает: берём в команду, ставим на поток БУ — здесь же фиксируются дата выхода, поток и наставник.</li>
+        <li><b>Биржевой университет</b> — офлайн-интенсив с погружением в компанию. Тренеры оценивают человека уже в деле и <b>вслепую</b>: до отправки своей оценки колонки HR и РОПа закрыты, чтобы не подстраиваться под уже поставленные баллы.</li>
+        <li><b>Итог испытательного</b>: система считает баллы с весами, подсвечивает расхождения ≥ 2 и стоп-факторы, предлагает вердикт. Решение фиксирует РОП с обоснованием — оставляем и развиваем по ИПР либо расстаёмся. Черновик ИПР собирается из просевших компетенций.</li>
       </ol>
     </div></section>
     <section class="card"><div class="card-b" style="display:grid; gap:10px">
       <h2>Как считается балл</h2>
-      <p class="small">По каждой шкале: <span class="mono">Σ(оценка × вес) / Σ(3 × вес)</span>. Отдельно «найм» (оценка HR с правками РОПа) и «БУ», итог — среднее из заполненных. Пороги вердикта: ≥ 75% — сильный, 55–74% — берём с ИПР, 40–54% — пограничная зона, ниже 40% — перспектив нет. Любой стоп-фактор с оценкой 0–1 перекрывает балл.</p>
+      <p class="small">По каждой шкале: <span class="mono">Σ(оценка × вес) / Σ(3 × вес)</span>. Отдельно «найм» (оценка HR с правками РОПа) и «БУ», итог — среднее из заполненных. Пороги вердикта: ≥ 75% — сильный старт, 55–74% — оставляем с ИПР, 40–54% — пограничная зона, ниже 40% — перспектив нет. Любой стоп-фактор с оценкой 0–1 перекрывает балл.</p>
     </div></section>
     <section class="card"><div class="card-b" style="display:grid; gap:10px">
       <h2>Что здесь условно и требует вашего решения</h2>
       <ul style="margin:0; padding-left:20px; display:grid; gap:6px" class="small">
-        <li>«БУ» трактуется как отдельный этап оценки в деле после сверки с РОПом — если это часть адаптации уже нанятого, поменяем формулировки вердиктов.</li>
+        <li>Момент найма привязан к отправке этапа РОПа: отдельного шага «оффер / выход» нет, дата выхода и поток заполняются вручную.</li>
         <li>Шкала 0–3, веса 1–3 и пороги вердикта — рабочая гипотеза, настраиваются в справочнике.</li>
         <li>Стоп-фактор пока один — «Честность и надёжность».</li>
         <li>Слепая оценка на БУ включена по умолчанию.</li>
+        <li>Оценка на БУ — одна, по итогам программы: промежуточных срезов по неделям интенсива нет.</li>
+        <li>Кандидата, которого РОП завернул на сверке, процесс не отсекает: карточка всё равно уходит на этап БУ.</li>
         <li>Данные лежат в браузере (localStorage), общего сервера нет: чтобы пройти все роли, выходите и заходите под разными доступами в одном браузере. Реальные персданные вносить нельзя.</li>
       </ul>
     </div></section>
@@ -905,6 +935,7 @@ function summaryText(c){
   const s = scores(c), rec = recommend(c), g = gaps(c);
   const L = [];
   L.push(`${c.name} — ${c.pos} (${c.src})`);
+  if (emp(c).start || emp(c).stream) L.push(`Выход: ${emp(c).start || "—"} · Поток БУ: ${emp(c).stream || "—"} · Наставник: ${emp(c).mentor || "—"}`);
   L.push(`Найм: ${s.hire ?? "—"}% · БУ: ${s.bu ?? "—"}% · Итог: ${s.total ?? "—"}%`);
   L.push(`Рекомендация матрицы: ${rec.title}`);
   if (c.decision.status === "final") L.push(`Решение РОПа: ${VERDICTS[c.decision.verdict].t} — ${c.decision.comment}`);
@@ -1008,6 +1039,7 @@ document.addEventListener("change", e => {
     save();
   }
   else if (act === "note"){ const ed = editorStage(c); if (ed){ c.st[ed].note = el.value; save(); } }
+  else if (act === "empField"){ emp(c)[el.dataset.f] = el.value; save(); }
   else if (act === "iprGoal"){ c.ipr.goal = el.value; save(); }
   else if (act === "iprChk"){ c.ipr.checkpoint = el.value; save(); }
   else if (act === "iprField"){
