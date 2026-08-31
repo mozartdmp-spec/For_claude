@@ -245,12 +245,33 @@ table.matrix tr:hover td:not(.blockcell){background:color-mix(in srgb,var(--surf
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+
+<style>
+.stepper{grid-template-columns:repeat(auto-fit,minmax(178px,1fr))}
+.cand{grid-template-columns:minmax(200px,2fr) auto minmax(120px,auto) 58px}
+.progress{display:flex; gap:7px; align-items:center}
+.pdot{width:10px; height:10px; border-radius:50%; background:var(--line-2); flex:none}
+.pdot.done{background:var(--good)}
+.pdot.active{background:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.pdot.skip{background:var(--line); opacity:.5}
+.cand .pillcell{justify-self:end}
+.step.skip{opacity:.5}
+.step.skip .s{text-decoration:line-through}
+.bu-cell{display:flex; gap:5px; align-items:center; flex-wrap:wrap}
+.bu-cell .who{font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--muted)}
+.bu-avg{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--muted); margin-left:2px}
+.split{border-left:2px solid var(--warn); padding-left:7px}
+.growth{font-family:"IBM Plex Mono",monospace; font-weight:600}
+.growth.up{color:var(--good)} .growth.down{color:var(--bad)} .growth.flat{color:var(--muted)}
+.trainer-note{border-left:2px solid var(--line-2); padding-left:10px; display:grid; gap:2px}
+</style>
+
 <script>
 "use strict";
 /* ============================================================
-   1. СПРАВОЧНИК КОМПЕТЕНЦИЙ (черновик под сейлза)
-   w — вес (1..3), crit — стоп-фактор, by — кто оценивает,
-   dev — типовые развивающие действия для ИПР
+   1. СПРАВОЧНИК КОМПЕТЕНЦИЙ
+   w — вес (1..3), crit — стоп-фактор, by — на каком этапе оценивают,
+   dev — типовое развивающее действие для ИПР
    ============================================================ */
 const SCALE = [
   {v:0, t:"Не проявлена", d:"Признаков поведения нет или проявляется обратное"},
@@ -274,6 +295,12 @@ const MATRIX = [
   {id:"s5", n:"Переговоры о цене", w:2, by:["bu"], hint:"Держит цену, торгуется по принципу обмена, не сливает маржу ради подписи.", dev:"Разбор трёх сделок со скидкой: что можно было получить взамен"},
   {id:"s6", n:"Холодный контакт", w:2, by:["bu"], hint:"Проход секретаря, выход на ЛПР, первые 30 секунд разговора.", dev:"Скрипт первого касания + 30 звонков с прослушкой РОПом"}
  ]},
+ {block:"Поведение на программе БУ", items:[
+  {id:"g1", n:"Включённость в программу", w:2, by:["bu"], hint:"Посещаемость, участие в разборах, сделанные домашние задания.", dev:"Догнать пропущенные модули программы с куратором до контрольной точки"},
+  {id:"g2", n:"Аттестация по итогам БУ", w:3, by:["bu"], hint:"Итоговый зачёт: продукт, скрипты, регламенты компании.", dev:"Пересдача аттестации по продукту и скриптам в течение 30 дней"},
+  {id:"g3", n:"Отработка на тренажёрах", w:2, by:["bu"], hint:"Как ведёт ролевые: берёт правку и сразу применяет или спорит и повторяет ошибку.", dev:"Два ролевых тренажёра в неделю с наставником, фиксация внедрённых правок"},
+  {id:"g4", n:"Встроенность в поток", w:1, by:["bu"], hint:"Как ведёт себя в группе: помогает, тянет одеяло, отсиживается.", dev:"Роль ведущего разбора на одной из планёрок потока"}
+ ]},
  {block:"Дисциплина и процесс", items:[
   {id:"p1", n:"Работа в CRM", w:2, by:["hr","bu"], hint:"Ведёт сделки и комментарии, не держит воронку в голове и блокноте.", dev:"Ежедневный контроль чистоты воронки, 100% сделок с датой следующего шага"},
   {id:"p2", n:"Планирование и приоритеты", w:2, by:["hr","bu"], hint:"Понимает, на какие сделки тратит время, отделяет крупное от срочного.", dev:"Планирование недели по ABC-сегментам, сверка по пятницам"},
@@ -293,7 +320,7 @@ const MATRIX = [
   {id:"l4", n:"Самостоятельность", w:2, by:["hr","bu"], hint:"Разбирается сам до того, как принести вопрос руководителю.", dev:"Правило «вопрос + два варианта решения»"}
  ]},
  {block:"Экспертиза", items:[
-  {id:"e1", n:"Знание продукта и рынка", w:2, by:["bu"], hint:"Знает линейку, отличия от конкурентов, типовые сценарии применения.", dev:"Аттестация по продукту через 30 дней, карта конкурентов"},
+  {id:"e1", n:"Знание продукта и рынка", w:2, by:["bu"], hint:"Знает линейку, отличия от конкурентов, типовые сценарии применения.", dev:"Карта конкурентов и пересдача блока по продукту"},
   {id:"e2", n:"Понимание ЛПР и цикла сделки", w:2, by:["hr","bu"], hint:"Различает роли в закупке, понимает длину и этапы своего цикла.", dev:"Карта ЛПР по пяти текущим сделкам"},
   {id:"e3", n:"Юнит-экономика сделки", w:1, by:["bu"], hint:"Понимает маржинальность, стоимость привлечения, цену скидки.", dev:"Расчёт маржи по своим сделкам за месяц вместе с РОПом"}
  ]}
@@ -302,105 +329,163 @@ const ALL = MATRIX.flatMap(b => b.items.map(i => ({...i, block:b.block})));
 const BY_ID = Object.fromEntries(ALL.map(i => [i.id, i]));
 
 const ROLES = {
-  hr:    {t:"HR", full:"HR-специалист", stage:"hr"},
-  rop:   {t:"РОП", full:"Руководитель отдела продаж", stage:"rop"},
-  bu:    {t:"БУ", full:"Тренер Биржевого университета", stage:"bu"},
-  admin: {t:"Админ", full:"Администратор процесса", stage:null}
+  hr:    {t:"HR",  full:"HR-специалист"},
+  rop:   {t:"РОП", full:"Руководитель отдела продаж"},
+  bu:    {t:"БУ",  full:"Тренер Биржевого университета"},
+  admin: {t:"АДМ", full:"Администратор процесса"}
 };
 const STAGES = [
-  {k:"hr",  n:"Этап 1", t:"Первичное интервью",     who:"hr",  d:"HR отмечает выявленные компетенции"},
-  {k:"rop", n:"Этап 2", t:"Сверка с РОПом",         who:"rop", d:"РОП подтверждает оценку и берёт в команду"},
-  {k:"bu",  n:"Этап 3", t:"Биржевой университет",   who:"bu",  d:"Оценка на интенсиве, вслепую"},
-  {k:"fin", n:"Этап 4", t:"Решение по итогам БУ",   who:"rop", d:"ИПР или расставание"}
+  {k:"hr",     n:"Этап 1", t:"Первичное интервью",   who:["hr"],       d:"HR отмечает выявленные компетенции"},
+  {k:"rop",    n:"Этап 2", t:"Сверка с РОПом",       who:["rop"],      d:"РОП подтверждает оценку или отказывает"},
+  {k:"out",    n:"Этап 3", t:"Выход",                who:["hr","rop"], d:"Дата выхода, поток БУ, наставник"},
+  {k:"bu",     n:"Этап 4", t:"Биржевой университет", who:["bu"],       d:"Два тренера оценивают вслепую"},
+  {k:"fin",    n:"Этап 5", t:"Решение по итогам БУ", who:["rop"],      d:"ИПР или расставание"},
+  {k:"review", n:"Этап 6", t:"Контрольный срез",     who:["bu","rop"], d:"Посттренинговое сопровождение, +30 дней"}
 ];
 const USERS = [
-  {login:"hr",    pass:"demo", name:"Ольга Тимина",   role:"hr"},
-  {login:"rop",   pass:"demo", name:"Сергей Лыков",   role:"rop"},
-  {login:"bu",    pass:"demo", name:"Никита Бельских", role:"bu"},
-  {login:"admin", pass:"demo", name:"Админ процесса", role:"admin"}
+  {login:"hr",    pass:"demo", name:"Ольга Тимина",     role:"hr"},
+  {login:"rop",   pass:"demo", name:"Сергей Лыков",     role:"rop"},
+  {login:"bu1",   pass:"demo", name:"Никита Бельских",  role:"bu"},
+  {login:"bu2",   pass:"demo", name:"Дарья Кимова",     role:"bu"},
+  {login:"admin", pass:"demo", name:"Админ процесса",   role:"admin"}
 ];
+const TRAINERS = USERS.filter(u => u.role === "bu").map(u => u.login);
+const TRAINER_NAME = Object.fromEntries(USERS.filter(u => u.role === "bu").map((u,i) => [u.login, {name:u.name, short:"Т" + (i+1)}]));
 </script>
 
 <script>
 /* ============================================================
    2. ХРАНИЛИЩЕ И ДЕМО-ДАННЫЕ
    ============================================================ */
-const KEY = "ms.v2";
+const KEY = "ms.v3";
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Math.random().toString(36).slice(2, 9);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const today = () => new Date().toISOString().slice(0,10);
+const shift = (iso, n) => { const d = iso ? new Date(iso) : new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); };
+const daysAgo = n => shift(today(), -n);
+const daysAhead = n => shift(today(), n);
 
 function safeGet(){ try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e){ return null; } }
-function safeSet(v){ try { localStorage.setItem(KEY, JSON.stringify(v)); } catch(e){ /* приватный режим — работаем в памяти */ } }
-
+function safeSet(v){ try { localStorage.setItem(KEY, JSON.stringify(v)); } catch(e){} }
 function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
-
 function gen(seed, role, bias){
-  const rng = mulberry32(seed);
-  const out = {};
+  const rng = mulberry32(seed), out = {};
   ALL.filter(i => i.by.includes(role)).forEach(i => { out[i.id] = clamp(Math.round(bias + (rng()*2-1)*1.05), 0, 3); });
   return out;
 }
-function daysAgo(n){ const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
-function daysAhead(n){ const d = new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
 
 function emptyStage(){ return {status:"pending", sc:{}, cmt:{}, note:"", by:"", at:""}; }
+function emptyEval(){ return {status:"pending", sc:{}, cmt:{}, note:"", by:"", at:""}; }
 function newCand(name, pos, src){
-  return {id:uid(), name, pos, src, created:daysAgo(1),
-    emp:{start:"", stream:"", mentor:""},
-    st:{hr:emptyStage(), rop:emptyStage(), bu:emptyStage()},
+  return {id:uid(), name, pos, src, created:today(),
+    emp:{start:"", stream:"", buStart:"", buEnd:"", mentor:""},
+    st:{hr:emptyStage(), rop:emptyStage(), out:{status:"pending", by:"", at:""},
+        bu:{evals:Object.fromEntries(TRAINERS.map(t => [t, emptyEval()]))}},
+    rejected:{status:"no", comment:"", by:"", at:""},
     decision:{status:"pending", verdict:"", comment:"", by:"", at:""},
-    ipr:{goal:"", checkpoint:daysAhead(30), items:[]}};
+    ipr:{goal:"", checkpoint:"", items:[]},
+    review:{status:"none", sc:{}, note:"", by:"", at:"", verdict:"", comment:""}};
+}
+function stageDone(c, k){
+  if (k === "hr" || k === "rop") return c.st[k].status === "submitted";
+  if (k === "out") return c.st.out.status === "submitted";
+  if (k === "bu") return TRAINERS.every(t => c.st.bu.evals[t].status === "submitted");
+  if (k === "fin") return c.decision.status === "final";
+  if (k === "review") return c.review.status === "done";
+  return false;
+}
+function stage(c){
+  if (c.rejected.status === "yes") return "closed";
+  if (!stageDone(c, "hr")) return "hr";
+  if (!stageDone(c, "rop")) return "rop";
+  if (!stageDone(c, "out")) return "out";
+  if (!stageDone(c, "bu")) return "bu";
+  if (!stageDone(c, "fin")) return "fin";
+  if (c.review.status === "open") return "review";
+  return "done";
 }
 
 function seed(){
-  const c1 = newCand("Кирилл Абрамов", "Менеджер по продажам", "hh.ru");
-  c1.created = daysAgo(0);
+  const mk = (name, pos, src, ago) => { const c = newCand(name, pos, src); c.created = daysAgo(ago); return c; };
 
-  const c2 = newCand("Ирина Ковалёва", "Менеджер по продажам", "Рекомендация");
-  c2.created = daysAgo(3);
+  const c1 = mk("Кирилл Абрамов", "Менеджер по продажам", "hh.ru", 0);
+
+  const c2 = mk("Ирина Ковалёва", "Менеджер по продажам", "Рекомендация", 3);
   c2.st.hr = {status:"submitted", sc:gen(11,"hr",2.3), cmt:{m2:"Три года в холодных продажах, отказы разбирает спокойно."}, note:"Опыт 4 года, ищет переменную часть выше рынка. Готова выйти через 2 недели.", by:"Ольга Тимина", at:daysAgo(2)};
 
-  const c3 = newCand("Артём Дроздов", "Менеджер по продажам", "Telegram-канал");
-  c3.created = daysAgo(7);
-  c3.st.hr = {status:"submitted", sc:gen(23,"hr",2.1), cmt:{}, note:"Опыт 2 года в рознице, в B2B не работал. Мотивация — деньги и рост.", by:"Ольга Тимина", at:daysAgo(6)};
-  c3.emp = {start:daysAgo(4), stream:"Поток №14", mentor:"Сергей Лыков"};
-  c3.st.rop = {status:"submitted", sc:{s1:1, c2:2}, cmt:{s1:"На кейсе не квалифицировал: сразу ушёл в презентацию."}, note:"С мотивацией согласен, навык квалификации переоценён.", by:"Сергей Лыков", at:daysAgo(5)};
+  const c3 = mk("Борис Ланге", "Менеджер по продажам", "hh.ru", 6);
+  c3.st.hr = {status:"submitted", sc:gen(17,"hr",1.7), cmt:{}, note:"Опыт есть, но говорит только про оклад и «тёплую базу».", by:"Ольга Тимина", at:daysAgo(5)};
+  c3.rejected = {status:"yes", comment:"На сверке не подтвердил ни одного результата цифрами, к холодным звонкам не готов. Оффер не делаем.", by:"Сергей Лыков", at:daysAgo(4)};
 
-  const c4 = newCand("Марина Швец", "Старший менеджер", "Рекомендация");
-  c4.created = daysAgo(14);
-  c4.st.hr = {status:"submitted", sc:gen(37,"hr",2.5), cmt:{}, note:"Сильное интервью, много цифр, уверенная речь.", by:"Ольга Тимина", at:daysAgo(13)};
-  c4.emp = {start:daysAgo(11), stream:"Поток №13", mentor:"Сергей Лыков"};
-  c4.st.rop = {status:"submitted", sc:{}, cmt:{}, note:"С оценкой HR согласен полностью, выводим.", by:"Сергей Лыков", at:daysAgo(12)};
-  c4.st.bu  = {status:"submitted", sc:gen(41,"bu",1.6), cmt:{s3:"На тренажёре возражений дважды дала скидку без обмена."}, note:"На интенсиве слабее, чем на интервью: сильная самопрезентация, но техника проседает.", by:"Никита Бельских", at:daysAgo(4)};
+  const c4 = mk("Артём Дроздов", "Менеджер по продажам", "Telegram-канал", 30);
+  c4.st.hr = {status:"submitted", sc:gen(23,"hr",2.1), cmt:{}, note:"Опыт 2 года в рознице, в B2B не работал. Мотивация — деньги и рост.", by:"Ольга Тимина", at:daysAgo(29)};
+  c4.st.rop = {status:"submitted", sc:{s1:1, c2:2}, cmt:{s1:"На кейсе не квалифицировал: сразу ушёл в презентацию."}, note:"С мотивацией согласен, навык квалификации переоценён. Выводим.", by:"Сергей Лыков", at:daysAgo(28)};
+  c4.emp = {start:daysAgo(21), stream:"Поток №14", buStart:daysAgo(21), buEnd:daysAgo(7), mentor:"Сергей Лыков"};
+  c4.st.out = {status:"submitted", by:"Ольга Тимина", at:daysAgo(24)};
+  const a1 = gen(31,"bu",2.0); a1.l1 = 2;
+  c4.st.bu.evals.bu1 = {status:"submitted", sc:a1, cmt:{g2:"Аттестацию сдал со второго раза, продукт знает ровно."}, note:"Работоспособный, но техника пока сырая.", by:"Никита Бельских", at:daysAgo(6)};
 
-  const c5 = newCand("Павел Гуров", "Менеджер по продажам", "hh.ru");
-  c5.created = daysAgo(21);
-  c5.st.hr = {status:"submitted", sc:gen(53,"hr",2.2), cmt:{}, note:"Резюме отличное, проверяли рекомендации.", by:"Ольга Тимина", at:daysAgo(20)};
-  c5.emp = {start:daysAgo(18), stream:"Поток №12", mentor:"Никита Бельских"};
-  c5.st.rop = {status:"submitted", sc:{}, cmt:{}, note:"Ок, выводим на поток.", by:"Сергей Лыков", at:daysAgo(19)};
-  const buSc = gen(59,"bu",1.5); buSc.l1 = 0; buSc.s4 = 1;
-  c5.st.bu = {status:"submitted", sc:buSc, cmt:{l1:"Приписал себе две чужие сделки на разборе, при проверке не признал."}, note:"Стоп-фактор по надёжности, программу не доучиваем.", by:"Никита Бельских", at:daysAgo(10)};
-  c5.decision = {status:"final", verdict:"out", comment:"Стоп-фактор по честности подтверждён на БУ. Расстаёмся на испытательном, в резерв не заносим.", by:"Сергей Лыков", at:daysAgo(9)};
+  const c5 = mk("Марина Швец", "Старший менеджер", "Рекомендация", 45);
+  const mHr = gen(37,"hr",2.5); mHr.l1 = 3;
+  c5.st.hr = {status:"submitted", sc:mHr, cmt:{}, note:"Сильное интервью, много цифр, уверенная речь.", by:"Ольга Тимина", at:daysAgo(44)};
+  c5.st.rop = {status:"submitted", sc:{}, cmt:{}, note:"С оценкой HR согласен полностью, выводим.", by:"Сергей Лыков", at:daysAgo(43)};
+  c5.emp = {start:daysAgo(35), stream:"Поток №13", buStart:daysAgo(35), buEnd:daysAgo(21), mentor:"Сергей Лыков"};
+  c5.st.out = {status:"submitted", by:"Ольга Тимина", at:daysAgo(38)};
+  const m1 = gen(41,"bu",1.6); m1.l1 = 2;
+  c5.st.bu.evals.bu1 = {status:"submitted", sc:m1, cmt:{s3:"На тренажёре возражений дважды дала скидку без обмена."}, note:"На интенсиве слабее, чем на интервью: сильная самопрезентация, техника проседает.", by:"Никита Бельских", at:daysAgo(20)};
+  const m2 = gen(47,"bu",1.9); m2.l1 = 2;
+  c5.st.bu.evals.bu2 = {status:"submitted", sc:m2, cmt:{c2:"Перебивает, резюме за клиента не делает."}, note:"Быстро схватывает продукт, слушать не умеет.", by:"Дарья Кимова", at:daysAgo(20)};
 
-  return {candidates:[c1, c2, c3, c4, c5], v:2};
+  const c6 = mk("Павел Гуров", "Менеджер по продажам", "hh.ru", 60);
+  c6.st.hr = {status:"submitted", sc:gen(53,"hr",2.2), cmt:{}, note:"Резюме отличное, проверяли рекомендации.", by:"Ольга Тимина", at:daysAgo(59)};
+  c6.st.rop = {status:"submitted", sc:{}, cmt:{}, note:"Ок, выводим на поток.", by:"Сергей Лыков", at:daysAgo(58)};
+  c6.emp = {start:daysAgo(50), stream:"Поток №12", buStart:daysAgo(50), buEnd:daysAgo(36), mentor:"Никита Бельских"};
+  c6.st.out = {status:"submitted", by:"Ольга Тимина", at:daysAgo(53)};
+  const s1 = gen(59,"bu",1.5); s1.l1 = 0; s1.s4 = 1;
+  const s2 = gen(61,"bu",1.6); s2.l1 = 1;
+  c6.st.bu.evals.bu1 = {status:"submitted", sc:s1, cmt:{l1:"Приписал себе две чужие сделки на разборе, при проверке не признал."}, note:"Стоп-фактор по надёжности, программу не доучиваем.", by:"Никита Бельских", at:daysAgo(35)};
+  c6.st.bu.evals.bu2 = {status:"submitted", sc:s2, cmt:{}, note:"Подтверждаю: цифры в отчёте по тренажёрам не сходятся с фактом.", by:"Дарья Кимова", at:daysAgo(35)};
+  c6.decision = {status:"final", verdict:"out", comment:"Стоп-фактор по честности подтверждён обоими тренерами. Расстаёмся на испытательном.", by:"Сергей Лыков", at:daysAgo(34)};
+
+  const c7 = mk("Егор Пименов", "Менеджер по продажам", "Рекомендация", 75);
+  const eHr = gen(67,"hr",2.2); eHr.l1 = 3;
+  c7.st.hr = {status:"submitted", sc:eHr, cmt:{}, note:"Без опыта в продажах, но быстрый и голодный.", by:"Ольга Тимина", at:daysAgo(74)};
+  c7.st.rop = {status:"submitted", sc:{}, cmt:{}, note:"Берём на вырост.", by:"Сергей Лыков", at:daysAgo(73)};
+  c7.emp = {start:daysAgo(66), stream:"Поток №12", buStart:daysAgo(66), buEnd:daysAgo(52), mentor:"Дарья Кимова"};
+  c7.st.out = {status:"submitted", by:"Ольга Тимина", at:daysAgo(69)};
+  const e1 = gen(71,"bu",1.9); e1.l1 = 3;
+  c7.st.bu.evals.bu1 = {status:"submitted", sc:e1, cmt:{}, note:"Старательный, техника догоняется.", by:"Никита Бельских", at:daysAgo(51)};
+  const e2s = gen(73,"bu",2.0); e2s.l1 = 3;
+  c7.st.bu.evals.bu2 = {status:"submitted", sc:e2s, cmt:{}, note:"Аттестацию сдал с первого раза.", by:"Дарья Кимова", at:daysAgo(51)};
+  c7.decision = {status:"final", verdict:"ipr", comment:"Оставляем. Просадки в закрытии и возражениях закрываем планом на 60 дней.", by:"Сергей Лыков", at:daysAgo(50)};
+  c7.ipr = {goal:"Выйти на 80% плана к концу третьего месяца, закрывать сделки без напоминаний РОПа.", checkpoint:shift(c7.emp.buEnd, 30), items:[]};
+  c7.ipr.items = buildIPR(c7);
+  c7.review = {status:"open", sc:{}, note:"", by:"", at:"", verdict:"", comment:""};
+
+  return {candidates:[c1, c2, c3, c4, c5, c6, c7], v:3};
 }
 
-let DB = safeGet() || seed();
+let DB = null;
 let SESSION = null;
 try { SESSION = JSON.parse(sessionStorage.getItem(KEY + ".s") || "null"); } catch(e){}
 let ROUTE = {view:"list", id:null};
-
 function save(){ safeSet(DB); }
 function cand(id){ return DB.candidates.find(c => c.id === id); }
-function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 2200); }
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), 2400); }
 
 /* ============================================================
-   3. РАСЧЁТ ОЦЕНОК И РЕКОМЕНДАЦИИ
+   3. РАСЧЁТ ОЦЕНОК
    ============================================================ */
 const hireVal = (c, id) => (c.st.rop.sc[id] !== undefined ? c.st.rop.sc[id] : c.st.hr.sc[id]);
-const buVal   = (c, id) => c.st.bu.sc[id];
+const trainerVals = (c, id) => TRAINERS.map(t => c.st.bu.evals[t].sc[id]).filter(v => v !== undefined);
+function buVal(c, id){
+  const v = trainerVals(c, id);
+  return v.length ? v.reduce((a,b) => a+b, 0) / v.length : undefined;
+}
+const buRound = (c, id) => { const v = buVal(c, id); return v === undefined ? undefined : Math.round(v); };
+const fmt = v => v === undefined ? "—" : (Number.isInteger(v) ? String(v) : v.toFixed(1));
 
 function pct(c, getter, filterRole){
   let got = 0, max = 0;
@@ -415,8 +500,7 @@ function scores(c){
   const hire = pct(c, hireVal, "hr");
   const bu = pct(c, buVal, "bu");
   const both = [hire, bu].filter(v => v !== null);
-  const total = both.length ? Math.round(both.reduce((a,b) => a+b, 0) / both.length) : null;
-  return {hire, bu, total};
+  return {hire, bu, total: both.length ? Math.round(both.reduce((a,b) => a+b, 0) / both.length) : null};
 }
 function gaps(c){
   return ALL.filter(i => {
@@ -424,26 +508,23 @@ function gaps(c){
     return a !== undefined && b !== undefined && Math.abs(a - b) >= 2;
   }).map(i => ({...i, hire:hireVal(c, i.id), bu:buVal(c, i.id)}));
 }
+function trainerGaps(c){
+  return ALL.filter(i => { const v = trainerVals(c, i.id); return v.length === 2 && Math.abs(v[0] - v[1]) >= 2; })
+            .map(i => ({...i, vals:trainerVals(c, i.id)}));
+}
 function stopFlags(c){
   return ALL.filter(i => i.crit).map(i => {
-    const vals = [hireVal(c, i.id), buVal(c, i.id)].filter(v => v !== undefined);
-    const low = vals.filter(v => v <= 1);
-    return low.length ? {...i, vals} : null;
+    const vals = [hireVal(c, i.id), ...trainerVals(c, i.id)].filter(v => v !== undefined);
+    return vals.some(v => v <= 1) ? {...i, vals} : null;
   }).filter(Boolean);
 }
 function weakItems(c){
   return ALL.map(i => {
-    const vals = [hireVal(c, i.id), buVal(c, i.id)].filter(v => v !== undefined);
+    const vals = [hireVal(c, i.id), buRound(c, i.id)].filter(v => v !== undefined);
     if (!vals.length) return null;
     const min = Math.min(...vals);
     return min <= 1 ? {...i, min} : null;
   }).filter(Boolean).sort((a,b) => (b.w - a.w) || (a.min - b.min));
-}
-function stage(c){
-  if (c.st.hr.status !== "submitted") return "hr";
-  if (c.st.rop.status !== "submitted") return "rop";
-  if (c.st.bu.status !== "submitted") return "bu";
-  return "fin";
 }
 function recommend(c){
   const s = scores(c), stop = stopFlags(c), g = gaps(c);
@@ -451,7 +532,7 @@ function recommend(c){
     text:`Критичная компетенция «${stop[0].n}» оценена на ${Math.min(...stop[0].vals)}. Развитию не подлежит: рекомендуем расстаться на испытательном.`};
   if (s.total === null) return {tone:"", key:"none", title:"Данных пока нет", text:"Рекомендация появится, когда будет заполнен хотя бы один этап."};
   if (s.total >= 75) return {tone:"good", key:"strong", title:"Сильный старт — ИПР на усиление",
-    text:`Итог ${s.total}%. Оставляем и растим: ИПР точечный, на 2–3 зоны из слабых.` + (g.length ? ` Но сверьте ${g.length} расхождения между этапами.` : "")};
+    text:`Итог ${s.total}%. Оставляем и растим: ИПР точечный, на 2–3 зоны из слабых.` + (g.length ? ` Но сверьте ${g.length} расхождения между интервью и БУ.` : "")};
   if (s.total >= 55) return {tone:"good", key:"ipr", title:"Оставляем, развиваем по ИПР",
     text:`Итог ${s.total}%. База есть, просадки закрываются планом развития на 60–90 дней.`};
   if (s.total >= 40) return {tone:"warn", key:"watch", title:"Пограничная зона — ИПР с контрольной точкой",
@@ -464,19 +545,28 @@ const VERDICTS = {
   watch:{t:"ИПР с контрольной точкой 30 дней", tone:"warn"},
   out:  {t:"Перспектив нет — расстаёмся", tone:"bad"}
 };
+const REVIEW_VERDICTS = {
+  ok:  {t:"ИПР выполнен — снимаем с сопровождения", tone:"good"},
+  ext: {t:"Продлеваем ИПР ещё на 30 дней", tone:"warn"},
+  out: {t:"Роста нет — расстаёмся", tone:"bad"}
+};
+function iprBase(c){ return c.emp.buEnd || c.emp.start || c.decision.at || today(); }
 function buildIPR(c){
-  const weak = weakItems(c).slice(0, 5);
-  return weak.map((i, idx) => ({
+  const base = iprBase(c);
+  return weakItems(c).slice(0, 5).map((i, idx) => ({
     id:i.id, action:i.dev, metric:"",
-    due:daysAhead(idx < 2 ? 30 : (idx < 4 ? 60 : 90)),
+    due:shift(base, idx < 2 ? 30 : (idx < 4 ? 60 : 90)),
     owner:"РОП"
   }));
 }
+
+/* инициализация после того, как объявлены все расчётные функции */
+DB = safeGet() || seed();
 </script>
 
 <script>
 /* ============================================================
-   4. ЭКРАН ВХОДА
+   4. ВХОД И ОБОЛОЧКА
    ============================================================ */
 function renderGate(){
   $("#gate").hidden = false; $("#app").hidden = true;
@@ -485,7 +575,8 @@ function renderGate(){
   USERS.forEach(u => {
     const b = document.createElement("button");
     b.type = "button"; b.className = "demo-user";
-    b.innerHTML = `<span><b>${esc(ROLES[u.role].full)}</b><br><span class="small muted">${esc(u.name)}</span></span><span class="mono small">${esc(u.login)} / ${esc(u.pass)}</span>`;
+    const label = u.role === "bu" ? `${ROLES.bu.full}, ${TRAINER_NAME[u.login].short}` : ROLES[u.role].full;
+    b.innerHTML = `<span><b>${esc(label)}</b><br><span class="small muted">${esc(u.name)}</span></span><span class="mono small">${esc(u.login)} / ${esc(u.pass)}</span>`;
     b.addEventListener("click", () => { $("#login").value = u.login; $("#pass").value = u.pass; $("#loginErr").textContent = ""; });
     box.appendChild(b);
   });
@@ -497,8 +588,7 @@ $("#loginForm").addEventListener("submit", e => {
   if (!u){ $("#loginErr").textContent = "Логин или пароль не подошли. Возьмите доступ из списка ниже."; return; }
   SESSION = {login:u.login, name:u.name, role:u.role};
   try { sessionStorage.setItem(KEY + ".s", JSON.stringify(SESSION)); } catch(err){}
-  ROUTE = {view:"list", id:null};
-  render();
+  ROUTE = {view:"list", id:null}; render();
 });
 $("#logout").addEventListener("click", () => {
   SESSION = null;
@@ -507,15 +597,12 @@ $("#logout").addEventListener("click", () => {
   render();
 });
 
-/* ============================================================
-   5. ОБЩАЯ ОБОЛОЧКА
-   ============================================================ */
 function render(){
   if (!SESSION){ renderGate(); return; }
   $("#gate").hidden = true; $("#app").hidden = false;
   $("#uName").textContent = SESSION.name;
-  $("#uRole").textContent = ROLES[SESSION.role].full;
-  $("#uAv").textContent = ROLES[SESSION.role].t;
+  $("#uRole").textContent = SESSION.role === "bu" ? `${ROLES.bu.full}, ${TRAINER_NAME[SESSION.login].short}` : ROLES[SESSION.role].full;
+  $("#uAv").textContent = SESSION.role === "bu" ? TRAINER_NAME[SESSION.login].short : ROLES[SESSION.role].t;
   const nav = [["list","Оценка"],["matrix","Матрица компетенций"],["about","О прототипе"]];
   $("#nav").innerHTML = nav.map(([k,t]) =>
     `<button data-act="nav" data-v="${k}" ${ROUTE.view===k || (k==="list"&&ROUTE.view==="cand") ? 'aria-current="page"' : ""}>${t}</button>`).join("");
@@ -528,215 +615,274 @@ function render(){
 }
 
 /* ============================================================
-   6. СПИСОК КАНДИДАТОВ
+   5. ПРАВА И СТАТУСЫ
    ============================================================ */
-function stageDots(c){
-  const cur = stage(c);
-  return STAGES.map(s => {
-    const done = s.k === "fin" ? c.decision.status === "final" : c.st[s.k].status === "submitted";
-    const active = s.k === cur && !done;
-    return `<span class="dot ${done ? "done" : ""} ${active ? "active" : ""}"><b></b>${s.t}</span>`;
-  }).join("");
+function myEval(c){ return SESSION.role === "bu" ? c.st.bu.evals[SESSION.login] : null; }
+function editorStage(c){
+  const st = stage(c);
+  if (st === "closed" || st === "done" || st === "fin" || st === "review") return null;
+  if (st === "bu"){
+    if (SESSION.role !== "bu") return null;
+    return myEval(c).status === "submitted" ? null : "bu";
+  }
+  const s = STAGES.find(x => x.k === st);
+  return (s.who.includes(SESSION.role) || SESSION.role === "admin") ? st : null;
+}
+function blind(c){ return SESSION.role === "bu" && myEval(c) && myEval(c).status !== "submitted"; }
+function waitingMe(c){
+  const st = stage(c);
+  if (st === "closed" || st === "done") return false;
+  if (st === "bu") return SESSION.role === "bu" && myEval(c).status !== "submitted";
+  if (SESSION.role === "admin") return false;
+  return STAGES.find(x => x.k === st).who.includes(SESSION.role);
 }
 function statusWord(c){
   const st = stage(c);
-  return st === "hr" ? "Кандидат" : st === "rop" ? "Ждёт сверки" : st === "bu" ? "На БУ" : "Ждёт решения";
+  return st === "closed" ? "Отказ на сверке" : st === "hr" ? "Кандидат" : st === "rop" ? "Ждёт сверки"
+    : st === "out" ? "Ждёт выхода" : st === "bu" ? "На БУ" : st === "fin" ? "Ждёт решения"
+    : st === "review" ? "Контрольный срез" : "Завершён";
+}
+
+/* ============================================================
+   6. СПИСОК
+   ============================================================ */
+function stageDots(c){
+  const cur = stage(c);
+  const closed = cur === "closed";
+  return STAGES.map(s => {
+    if (s.k === "review" && c.review.status === "none" && !closed) return "";
+    const skip = closed && ["out","bu","fin","review"].includes(s.k);
+    const done = !skip && stageDone(c, s.k), active = !skip && s.k === cur && !done;
+    const state = skip ? "не проводится" : done ? "пройден" : active ? "текущий" : "впереди";
+    return `<span class="pdot ${skip ? "skip" : ""} ${done ? "done" : ""} ${active ? "active" : ""}" title="${esc(s.t)} — ${state}"></span>`;
+  }).join("");
 }
 function viewList(){
-  const mine = c => {
-    const st = stage(c);
-    if (c.decision.status === "final") return false;
-    if (st === "fin") return SESSION.role === "rop" || SESSION.role === "admin";
-    return STAGES.find(s => s.k === st).who === SESSION.role;
-  };
-  const sorted = [...DB.candidates].sort((a,b) => (mine(b) ? 1 : 0) - (mine(a) ? 1 : 0));
+  const sorted = [...DB.candidates].sort((a,b) => (waitingMe(b) ? 1 : 0) - (waitingMe(a) ? 1 : 0));
   const canAdd = SESSION.role === "hr" || SESSION.role === "admin";
-  const myCount = DB.candidates.filter(mine).length;
+  const myCount = DB.candidates.filter(waitingMe).length;
+  const form = window.__addOpen ? `
+    <section class="card" style="margin-bottom:14px"><div class="card-b" style="display:grid; gap:10px">
+      <span class="eyebrow">Новый кандидат</span>
+      <div class="ipr-meta" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="field" style="margin:0"><label for="newName">Имя</label><input id="newName" type="text" placeholder="Имя и фамилия"></div>
+        <div class="field" style="margin:0"><label for="newPos">Позиция</label><input id="newPos" type="text" value="Менеджер по продажам"></div>
+        <div class="field" style="margin:0"><label for="newSrc">Источник</label><input id="newSrc" type="text" placeholder="hh.ru, рекомендация…"></div>
+      </div>
+      <div class="row"><button class="btn btn-primary" data-act="addSave">Создать карточку</button>
+      <button class="btn btn-ghost" data-act="addCancel">Отмена</button></div>
+    </div></section>` : "";
   return `
   <div class="list-head">
     <div>
       <span class="eyebrow">Путь от интервью до испытательного</span>
       <h1>Кандидаты и новички</h1>
-      <p class="muted small" style="margin-top:6px">Оценка идёт в три руки: HR на первичном интервью, РОП на сверке, тренеры Биржевого университета — вслепую, уже на вышедшем сотруднике. Итог сводится в рекомендацию: ИПР или расставание на испытательном.</p>
+      <p class="muted small" style="margin-top:6px">HR оценивает на интервью, РОП сверяет и решает по офферу, два тренера Биржевого университета оценивают вслепую уже вышедшего сотрудника. Итог — ИПР или расставание, через месяц после БУ — контрольный срез.</p>
     </div>
     <span class="spacer"></span>
     ${myCount ? `<span class="pill info">Ждут вас: ${myCount}</span>` : `<span class="pill mute">Для вас задач нет</span>`}
     ${canAdd ? `<button class="btn btn-primary" data-act="add">Новый кандидат</button>` : ""}
   </div>
+  ${form}
   <div class="cands">
     ${sorted.map(c => {
-      const s = scores(c);
-      const fin = c.decision.status === "final";
-      const vd = fin ? VERDICTS[c.decision.verdict] : null;
-      return `<button class="cand" data-act="open" data-v="${c.id}" data-mine="${mine(c) ? 1 : 0}">
-        <span>
-          <span class="name">${esc(c.name)}</span><br>
-          <span class="small muted">${esc(c.pos)} · ${esc(c.src)}</span>
-        </span>
-        <span class="progress">${stageDots(c)}</span>
-        <span>${fin ? `<span class="pill ${vd.tone}">${vd.t}</span>` : (mine(c) ? `<span class="pill info">Ваш ход</span>` : `<span class="pill mute">${statusWord(c)}</span>`)}</span>
+      const s = scores(c), st = stage(c);
+      const pill = st === "closed" ? `<span class="pill bad">Отказ на сверке</span>`
+        : (c.review.status === "done" ? `<span class="pill ${REVIEW_VERDICTS[c.review.verdict].tone}">${REVIEW_VERDICTS[c.review.verdict].t}</span>`
+        : (c.decision.status === "final" ? `<span class="pill ${VERDICTS[c.decision.verdict].tone}">${VERDICTS[c.decision.verdict].t}</span>`
+        : (waitingMe(c) ? `<span class="pill info">Ваш ход</span>` : `<span class="pill mute">${statusWord(c)}</span>`)));
+      return `<button class="cand" data-act="open" data-v="${c.id}" data-mine="${waitingMe(c) ? 1 : 0}">
+        <span><span class="name">${esc(c.name)}</span><br><span class="small muted">${esc(c.pos)} · ${esc(c.src)}${c.emp.stream ? " · " + esc(c.emp.stream) : ""}</span></span>
+        <span class="progress" aria-label="Прогресс по этапам">${stageDots(c)}</span>
+        <span class="pillcell">${pill}</span>
         <span class="score-badge">${s.total === null ? '<span class="muted">—</span>' : s.total + "%"}</span>
       </button>`;
     }).join("")}
   </div>`;
 }
+</script>
 
+<script>
 /* ============================================================
-   7. КАРТОЧКА КАНДИДАТА
+   7. КАРТОЧКА: ВЫХОД, КОМПЕТЕНЦИИ
    ============================================================ */
-function editorStage(c){
-  const st = stage(c);
-  if (c.decision.status === "final") return null;
-  if (st === "fin") return null;
-  const owner = STAGES.find(s => s.k === st).who;
-  if (SESSION.role === owner || SESSION.role === "admin") return st;
-  return null;
-}
-function emp(c){ if (!c.emp) c.emp = {start:"", stream:"", mentor:""}; return c.emp; }
-function empCard(c){
-  if (c.st.hr.status !== "submitted") return "";
-  const canEdit = SESSION.role === "rop" || SESSION.role === "hr" || SESSION.role === "admin";
-  const e = emp(c);
-  return `<section class="card"><div class="card-b" style="display:grid; gap:10px">
-    <span class="eyebrow">Выход на работу и поток БУ</span>
-    <div class="ipr-meta" style="grid-template-columns:150px 1fr 1fr">
-      <div class="field" style="margin:0"><label>Дата выхода</label>
-        <input type="date" data-act="empField" data-f="start" value="${esc(e.start)}" ${canEdit ? "" : "readonly"}></div>
-      <div class="field" style="margin:0"><label>Поток БУ</label>
-        <input type="text" data-act="empField" data-f="stream" value="${esc(e.stream)}" ${canEdit ? "" : "readonly"} placeholder="например, Поток №14"></div>
-      <div class="field" style="margin:0"><label>Наставник</label>
-        <input type="text" data-act="empField" data-f="mentor" value="${esc(e.mentor)}" ${canEdit ? "" : "readonly"} placeholder="кто ведёт на испытательном"></div>
-    </div>
-  </div></section>`;
-}
-function blind(c){
-  return SESSION.role === "bu" && c.st.bu.status !== "submitted";
-}
-function cell(v, extra){
-  if (v === undefined) return `<span class="sc empty" title="не оценивалось">·</span>`;
-  return `<span class="sc v${v}" ${extra || ""}>${v}</span>`;
-}
+function cell(v){ return v === undefined ? `<span class="sc empty" title="не оценивалось">·</span>` : `<span class="sc v${v}">${v}</span>`; }
+const hatch = `<span class="sc hidden-blind" title="Скрыто, пока вы не внесли свою оценку">?</span>`;
 function seg(id, role, val){
   return `<span class="seg" role="group" aria-label="Оценка">${[0,1,2,3].map(v =>
-    `<button type="button" data-act="score" data-role="${role}" data-id="${id}" data-v="${v}" data-value="${v}" aria-pressed="${val === v}" title="${esc(SCALE[v].t)}">${v}</button>`).join("")}</span>`;
+    `<button type="button" data-act="score" data-role="${role}" data-id="${id}" data-value="${v}" aria-pressed="${val === v}" title="${esc(SCALE[v].t)}">${v}</button>`).join("")}</span>`;
 }
-function rowComments(c, i, ed){
+function buCellView(c, id, hideOther){
+  const parts = TRAINERS.map(t => {
+    const ev = c.st.bu.evals[t], v = ev.sc[id];
+    if (hideOther && t !== SESSION.login) return `<span class="who">${TRAINER_NAME[t].short}</span>${hatch}`;
+    if (ev.status !== "submitted" && v === undefined) return "";
+    return `<span class="who" title="${esc(TRAINER_NAME[t].name)}">${TRAINER_NAME[t].short}</span>${cell(v)}`;
+  }).filter(Boolean).join("");
+  if (!parts) return `<span class="muted small">—</span>`;
+  const vals = trainerVals(c, id);
+  const split = vals.length === 2 && Math.abs(vals[0] - vals[1]) >= 2;
+  const avg = buVal(c, id);
+  return `<span class="bu-cell ${split ? "split" : ""}" ${split ? 'title="Тренеры разошлись на 2 балла"' : ""}>${parts}${vals.length === 2 ? `<span class="bu-avg">ср. ${fmt(avg)}</span>` : ""}</span>`;
+}
+function rowComments(c, i, edKey){
   const out = [];
-  ["hr","rop","bu"].forEach(k => {
-    const t = c.st[k].cmt[i.id];
-    if (!t || k === ed) return;
-    if (k !== "bu" && blind(c)) return;
-    out.push(`<div class="comp-hint" style="color:var(--ink-2)">${ROLES[k].t}: «${esc(t)}»</div>`);
+  const add = (label, t) => out.push(`<div class="comp-hint" style="color:var(--ink-2)">${label}: «${esc(t)}»</div>`);
+  if (!blind(c)){
+    if (c.st.hr.cmt[i.id] && edKey !== "hr") add("HR", c.st.hr.cmt[i.id]);
+    if (c.st.rop.cmt[i.id] && edKey !== "rop") add("РОП", c.st.rop.cmt[i.id]);
+  }
+  TRAINERS.forEach(t => {
+    const ev = c.st.bu.evals[t];
+    if (!ev.cmt[i.id]) return;
+    if (SESSION.login === t && edKey === "bu") return;
+    if (blind(c)) return;
+    add(`БУ, ${TRAINER_NAME[t].name}`, ev.cmt[i.id]);
   });
   return out.join("");
 }
+function empCard(c){
+  if (!stageDone(c, "hr") || stage(c) === "closed") return "";
+  const canEdit = ["hr","rop","admin"].includes(SESSION.role) && stageDone(c, "rop");
+  const isStep = stage(c) === "out" && canEdit;
+  const e = c.emp;
+  const f = (label, key, type, ph) => `<div class="field" style="margin:0"><label>${label}</label>
+    <input type="${type}" data-act="empField" data-f="${key}" value="${esc(e[key])}" ${canEdit ? "" : "readonly"} ${ph ? `placeholder="${ph}"` : ""}></div>`;
+  return `<section class="card"><div class="card-b" style="display:grid; gap:10px">
+    <div class="row"><span class="eyebrow">Выход и поток БУ</span>
+      ${stageDone(c, "out") ? `<span class="pill good">Вышел ${esc(e.start)}</span>` : `<span class="pill mute">Не оформлен</span>`}</div>
+    <div class="ipr-meta" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      ${f("Дата выхода","start","date")}
+      ${f("Поток БУ","stream","text","например, Поток №14")}
+      ${f("Начало БУ","buStart","date")}
+      ${f("Окончание БУ","buEnd","date")}
+      ${f("Наставник","mentor","text","кто ведёт на испытательном")}
+    </div>
+    ${isStep ? `<div class="row no-print"><button class="btn btn-primary" data-act="submitOut">Зафиксировать выход</button>
+      <span class="small muted">Нужны дата выхода и поток. После этого сотрудник появится у тренеров БУ.</span></div>` : ""}
+    ${stageDone(c, "out") && e.buEnd ? `<span class="small muted">Сроки ИПР и контрольный срез считаются от окончания БУ — ${esc(e.buEnd)}.</span>` : ""}
+  </div></section>`;
+}
+
 function viewCand(c){
   const ed = editorStage(c);
-  const st = stage(c);
-  const s = scores(c);
-  const isBlind = blind(c);
-  const rec = recommend(c);
-  const g = gaps(c), stops = stopFlags(c);
+  const edTable = ["hr","rop","bu"].includes(ed) ? ed : null;
+  const st = stage(c), isBlind = blind(c), s = scores(c);
+  const rec = recommend(c), g = gaps(c), tg = trainerGaps(c), stops = stopFlags(c);
+  const closed = st === "closed";
 
   const stepper = STAGES.map(x => {
-    const done = x.k === "fin" ? c.decision.status === "final" : c.st[x.k].status === "submitted";
-    const active = x.k === st && !done;
-    const doneBy = x.k === "fin" ? c.decision : c.st[x.k];
-    return `<div class="step ${done ? "done" : ""} ${active ? "active" : ""} ${!done && !active ? "locked" : ""}">
-      <span class="n">${x.n}</span><span class="t">${x.t}</span>
-      <span class="s">${done ? `✓ ${esc(doneBy.by)}, ${esc(doneBy.at)}` : (active ? `Ждёт: ${ROLES[x.who].t}` : "Недоступно")}</span>
-    </div>`;
+    if (x.k === "review" && c.review.status === "none" && !closed) return "";
+    const skip = closed && ["out","bu","fin","review"].includes(x.k);
+    const done = stageDone(c, x.k), active = x.k === st && !done;
+    let sub = "Недоступно";
+    if (skip) sub = "Не проводится";
+    else if (done){
+      const by = x.k === "fin" ? c.decision : x.k === "review" ? c.review : x.k === "bu" ? c.st.bu.evals[TRAINERS[1]] : c.st[x.k];
+      sub = `✓ ${esc(x.k === "bu" ? "оба тренера" : by.by)}, ${esc(by.at)}`;
+    }
+    else if (active) sub = `Ждёт: ${x.who.map(r => ROLES[r].t).join(" / ")}`;
+    return `<div class="step ${done ? "done" : ""} ${active ? "active" : ""} ${skip ? "skip" : ""} ${!done && !active && !skip ? "locked" : ""}">
+      <span class="n">${x.n}</span><span class="t">${x.t}</span><span class="s">${sub}</span></div>`;
   }).join("");
 
   const rows = MATRIX.map(b => {
     const items = b.items.map(i => {
-      const hv = c.st.hr.sc[i.id], rv = c.st.rop.sc[i.id], bv = c.st.bu.sc[i.id];
-      const eff = hireVal(c, i.id);
-      const d = (eff !== undefined && bv !== undefined) ? Math.abs(eff - bv) : null;
-      const hideHire = isBlind;
+      const hv = c.st.hr.sc[i.id], rv = c.st.rop.sc[i.id];
+      const eff = hireVal(c, i.id), bAvg = buVal(c, i.id);
+      const d = (eff !== undefined && bAvg !== undefined) ? Math.abs(eff - bAvg) : null;
+      const myV = edTable === "bu" ? myEval(c).sc[i.id] : undefined;
       return `<tr>
         <td>
           <div class="comp-name">${esc(i.n)} ${i.crit ? '<span class="tag crit">стоп-фактор</span>' : ""} <span class="tag">вес ${i.w}</span></div>
           <div class="comp-hint">${esc(i.hint)}</div>
-          ${rowComments(c, i, ed)}
-          ${ed && i.by.includes(ed === "rop" ? "hr" : ed) ? `<details class="rowcmt no-print" ${c.st[ed].cmt[i.id] ? "open" : ""}><summary>Комментарий ${ROLES[ed].t}</summary><textarea data-act="cmt" data-id="${i.id}" placeholder="Что именно увидели по этой компетенции">${esc(c.st[ed].cmt[i.id] || "")}</textarea></details>` : ""}
+          ${rowComments(c, i, edTable)}
+          ${edTable && i.by.includes(edTable === "rop" ? "hr" : (edTable === "bu" ? "bu" : "hr")) ? `<details class="rowcmt no-print" ${(edTable === "bu" ? myEval(c) : c.st[edTable]).cmt[i.id] ? "open" : ""}><summary>Комментарий</summary><textarea data-act="cmt" data-id="${i.id}" placeholder="Что именно увидели по этой компетенции">${esc((edTable === "bu" ? myEval(c) : c.st[edTable]).cmt[i.id] || "")}</textarea></details>` : ""}
         </td>
         <td class="col-score">${!i.by.includes("hr") ? '<span class="muted small">не на этом этапе</span>'
-            : ed === "hr" ? seg(i.id, "hr", hv)
-            : hideHire ? '<span class="sc hidden-blind" title="Скрыто до внесения оценки БУ">?</span>' : cell(hv)}</td>
-        <td class="col-score">${!i.by.includes("hr") ? "" 
-            : ed === "rop" ? seg(i.id, "rop", rv !== undefined ? rv : hv)
-            : hideHire ? '<span class="sc hidden-blind" title="Скрыто до внесения оценки БУ">?</span>'
-            : (rv !== undefined ? `${cell(rv)} ${rv !== hv ? '<span class="tag" style="margin-left:4px">корректировка</span>' : '<span class="tag" style="margin-left:4px">подтвердил</span>'}`
-              : (c.st.rop.status === "submitted" ? '<span class="tag">подтвердил</span>' : '<span class="muted small">—</span>'))}</td>
-        <td class="col-score">${!i.by.includes("bu") ? '<span class="muted small">не на этом этапе</span>'
-            : ed === "bu" ? seg(i.id, "bu", bv) : cell(bv)}</td>
-        <td class="col-delta">${d === null ? '<span class="delta">—</span>' : `<span class="delta ${d >= 2 ? "flag" : ""}">${d >= 2 ? "▲ " : ""}${d}</span>`}</td>
+            : edTable === "hr" ? seg(i.id, "hr", hv) : (isBlind ? hatch : cell(hv))}</td>
+        <td class="col-score">${!i.by.includes("hr") ? ""
+            : edTable === "rop" ? seg(i.id, "rop", rv !== undefined ? rv : hv)
+            : isBlind ? hatch
+            : (rv !== undefined ? `${cell(rv)} <span class="tag" style="margin-left:4px">${rv !== hv ? "корректировка" : "подтвердил"}</span>`
+              : (stageDone(c, "rop") ? '<span class="tag">подтвердил</span>' : '<span class="muted small">—</span>'))}</td>
+        <td class="col-score" style="width:180px">${!i.by.includes("bu") ? '<span class="muted small">не на этом этапе</span>'
+            : edTable === "bu" ? seg(i.id, "bu", myV) : buCellView(c, i.id, isBlind)}</td>
+        <td class="col-delta">${d === null ? '<span class="delta">—</span>' : `<span class="delta ${d >= 2 ? "flag" : ""}">${d >= 2 ? "▲ " : ""}${fmt(d)}</span>`}</td>
       </tr>`;
     }).join("");
     return `<tr class="block-row"><td colspan="5" class="blockcell"><span class="eyebrow">${esc(b.block)}</span></td></tr>${items}`;
   }).join("");
 
-  const noteBlock = ed ? `
+  const edRec = edTable === "bu" ? myEval(c) : (edTable ? c.st[edTable] : null);
+  const noteBlock = edTable ? `
     <div class="card-b no-print" style="border-top:1px solid var(--line); display:grid; gap:10px">
       <div class="field" style="margin:0">
-        <label for="stageNote">Резюме этапа — ${esc(ROLES[ed].full)}</label>
-        <textarea id="stageNote" data-act="note" placeholder="Что увидели, на что смотреть дальше">${esc(c.st[ed].note)}</textarea>
+        <label for="stageNote">Резюме этапа — ${esc(edTable === "bu" ? ROLES.bu.full + ", " + SESSION.name : ROLES[edTable].full)}</label>
+        <textarea id="stageNote" data-act="note" placeholder="Что увидели, на что смотреть дальше">${esc(edRec.note)}</textarea>
       </div>
       <div class="row">
-        <button class="btn btn-primary" data-act="submitStage">${ed === "rop" ? "Подтвердить и вывести на БУ" : (ed === "hr" ? "Передать РОПу" : "Внести оценку по итогам БУ")}</button>
-        <span class="small muted">${ed === "rop" ? "Не тронутые строки уходят как подтверждение оценки HR. Отправка означает: берём в команду и ставим на поток БУ." : (ed === "bu" ? "После отправки откроются оценки HR и РОПа." : "После отправки правки доступны только админу.")}</span>
+        <button class="btn btn-primary" data-act="submitStage">${edTable === "rop" ? "Подтвердить и сделать оффер" : (edTable === "hr" ? "Передать РОПу" : "Внести свою оценку")}</button>
+        ${edTable === "rop" ? `<button class="btn" data-act="reject" style="border-color:color-mix(in srgb,var(--bad) 45%,transparent); color:var(--bad)">Отказать кандидату</button>` : ""}
+        <span class="small muted">${edTable === "rop" ? "Отказ закрывает путь: оффера и БУ не будет. Нужно резюме этапа как обоснование." : (edTable === "bu" ? "Второй тренер вас не видит, пока не внесёт своё. После отправки откроются все колонки." : "После отправки правки доступны только админу.")}</span>
       </div>
     </div>` : "";
+
+  const notes = [];
+  if (!isBlind){
+    ["hr","rop"].forEach(k => { if (stageDone(c, k) && c.st[k].note) notes.push([ROLES[k].full, c.st[k].at, c.st[k].note]); });
+    TRAINERS.forEach(t => { const ev = c.st.bu.evals[t]; if (ev.status === "submitted" && ev.note) notes.push([`${ROLES.bu.full}, ${ev.by}`, ev.at, ev.note]); });
+  } else if (myEval(c) && myEval(c).note) notes.push(["Ваш черновик", "не отправлено", myEval(c).note]);
 
   return `
   <div class="crumbs no-print"><button class="btn btn-ghost btn-sm" data-act="nav" data-v="list">← К списку</button></div>
   <div class="hero">
     <div>
-      <span class="eyebrow">${esc(c.pos)} · ${esc(c.src)} · ${stage(c) === "hr" || stage(c) === "rop" ? "кандидат с " + esc(c.created) : "в компании с " + esc(emp(c).start || c.created)}</span>
+      <span class="eyebrow">${esc(c.pos)} · ${esc(c.src)} · ${["hr","rop","closed"].includes(st) ? "кандидат с " + esc(c.created) : "в компании с " + esc(c.emp.start || c.created)}</span>
       <h1>${esc(c.name)}</h1>
       <div class="meta small muted">
-        <span>HR: ${c.st.hr.status === "submitted" ? esc(c.st.hr.by) : "—"}</span>
-        <span>РОП: ${c.st.rop.status === "submitted" ? esc(c.st.rop.by) : "—"}</span>
-        <span>БУ: ${c.st.bu.status === "submitted" ? esc(c.st.bu.by) : "—"}</span>
-        ${emp(c).stream ? `<span>Поток БУ: ${esc(emp(c).stream)}</span>` : ""}
-        ${emp(c).mentor ? `<span>Наставник: ${esc(emp(c).mentor)}</span>` : ""}
+        <span>HR: ${stageDone(c,"hr") ? esc(c.st.hr.by) : "—"}</span>
+        <span>РОП: ${stageDone(c,"rop") ? esc(c.st.rop.by) : (closed ? "отказ" : "—")}</span>
+        <span>БУ: ${TRAINERS.filter(t => c.st.bu.evals[t].status === "submitted").length}/2 тренера</span>
+        ${c.emp.stream ? `<span>${esc(c.emp.stream)}</span>` : ""}
+        ${c.emp.mentor ? `<span>Наставник: ${esc(c.emp.mentor)}</span>` : ""}
       </div>
     </div>
     <span class="spacer"></span>
     <div class="row no-print">
       <button class="btn btn-sm" data-act="copy">Скопировать сводку</button>
       <button class="btn btn-sm" data-act="print">Печать / PDF</button>
-      ${SESSION.role === "admin" && (c.st.hr.status === "submitted") ? `<button class="btn btn-sm" data-act="reopen">Вернуть на доработку</button>` : ""}
+      ${SESSION.role === "admin" ? `<button class="btn btn-sm" data-act="reopen">Вернуть на доработку</button>` : ""}
     </div>
   </div>
   <div class="stepper">${stepper}</div>
-  ${isBlind ? `<div class="banner no-print" style="margin-bottom:14px">Слепая оценка на интенсиве: до отправки вашей оценки колонки HR и РОПа закрыты — чтобы сверка была честной, а не подгонкой под чужие баллы.</div>` : ""}
+  ${closed ? `<div class="banner no-print" style="margin-bottom:14px; border-color:color-mix(in srgb,var(--bad) 45%,transparent)">
+      <b>Отказ на сверке.</b> ${esc(c.rejected.by)}, ${esc(c.rejected.at)}: «${esc(c.rejected.comment)}» — на БУ кандидат не выводится, оффер не делается.</div>` : ""}
+  ${isBlind ? `<div class="banner no-print" style="margin-bottom:14px">Слепая оценка: колонки HR, РОПа и второго тренера закрыты, пока вы не внесёте свою. Так сверка остаётся честной.</div>` : ""}
   <div class="layout">
     <div style="display:grid; gap:18px">
       ${empCard(c)}
       <section class="card">
         <div class="card-h">
-          <h2>Компетенции</h2>
-          <span class="spacer"></span>
+          <h2>Компетенции</h2><span class="spacer"></span>
           <span class="legend small">${SCALE.map(x => `<span><b class="mono">${x.v}</b> — ${esc(x.t)}</span>`).join("")}</span>
         </div>
         <div class="tablewrap">
           <table class="matrix">
-            <thead><tr><th>Компетенция</th><th>HR</th><th>РОП</th><th>БУ</th><th>Δ</th></tr></thead>
+            <thead><tr><th>Компетенция</th><th>HR</th><th>РОП</th><th>БУ · 2 тренера</th><th>Δ</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>
         ${noteBlock}
-        ${["hr","rop","bu"].filter(k => c.st[k].status === "submitted" && c.st[k].note && !(isBlind && k !== "bu")).map(k =>
-          `<div class="card-b" style="border-top:1px solid var(--line)"><span class="eyebrow">${esc(ROLES[k].full)} · ${esc(c.st[k].at)}</span><p style="margin-top:5px">${esc(c.st[k].note)}</p></div>`).join("")}
+        ${notes.map(([who, at, text]) => `<div class="card-b" style="border-top:1px solid var(--line)"><span class="eyebrow">${esc(who)} · ${esc(at)}</span><p style="margin-top:5px">${esc(text)}</p></div>`).join("")}
       </section>
       ${iprCard(c)}
+      ${reviewCard(c)}
     </div>
     <aside class="rail no-print">
-      ${railScores(c, s, isBlind)}
-      ${railVerdict(c, rec, g, stops, isBlind)}
-      ${railDecision(c, rec)}
+      ${railScores(c, s, isBlind, closed)}
+      ${railVerdict(c, rec, g, tg, stops, isBlind, closed)}
+      ${railDecision(c, rec, closed)}
     </aside>
   </div>`;
 }
@@ -744,7 +890,7 @@ function viewCand(c){
 
 <script>
 /* ============================================================
-   8. ПРАВЫЙ РЕЛЬС: БАЛЛЫ, РЕКОМЕНДАЦИЯ, РЕШЕНИЕ
+   8. РЕЛЬС: БАЛЛЫ, ФЛАГИ, РЕШЕНИЕ
    ============================================================ */
 function tone(p){ return p >= 70 ? "good" : p >= 45 ? "warn" : "bad"; }
 function bar(label, p){
@@ -753,52 +899,63 @@ function bar(label, p){
     <div class="bar"><i class="${p === null ? "" : tone(p)}" style="width:${p === null ? 0 : p}%"></i></div>
   </div>`;
 }
-function railScores(c, s, isBlind){
+function railScores(c, s, isBlind, closed){
   if (isBlind) return `<section class="card"><div class="card-b"><span class="eyebrow">Сводка</span>
-    <p class="small muted" style="margin-top:6px">Баллы предыдущих этапов откроются после того, как вы внесёте свою оценку.</p></div></section>`;
+    <p class="small muted" style="margin-top:6px">Баллы коллег откроются после того, как вы внесёте свою оценку.</p></div></section>`;
   const filled = ALL.filter(i => hireVal(c, i.id) !== undefined || buVal(c, i.id) !== undefined).length;
   return `<section class="card"><div class="card-b" style="display:grid; gap:12px">
     <span class="eyebrow">Сводка по баллам</span>
-    ${bar("Найм (HR + РОП)", s.hire)}
-    ${bar("Оценка на БУ", s.bu)}
-    ${bar("Итог", s.total)}
+    ${bar("Отбор (HR + РОП)", s.hire)}
+    ${closed ? "" : bar("Биржевой университет", s.bu)}
+    ${closed ? "" : bar("Итог", s.total)}
     <div>
       <div class="kv"><span class="k">Оценено компетенций</span><span class="v">${filled} / ${ALL.length}</span></div>
-      <div class="kv"><span class="k">Расхождений ≥ 2</span><span class="v">${gaps(c).length}</span></div>
+      ${closed ? "" : `<div class="kv"><span class="k">Расхождений отбор ↔ БУ</span><span class="v">${gaps(c).length}</span></div>
+      <div class="kv"><span class="k">Разошлись тренеры</span><span class="v">${trainerGaps(c).length}</span></div>`}
       <div class="kv"><span class="k">Стоп-факторов</span><span class="v">${stopFlags(c).length}</span></div>
     </div>
   </div></section>`;
 }
-function railVerdict(c, rec, g, stops, isBlind){
-  if (isBlind) return "";
+function railVerdict(c, rec, g, tg, stops, isBlind, closed){
+  if (isBlind || closed) return "";
   return `<section class="card"><div class="card-b" style="display:grid; gap:12px">
     <span class="eyebrow">Что говорит матрица</span>
     <div class="verdict ${rec.tone}"><h3>${esc(rec.title)}</h3><p class="small">${esc(rec.text)}</p></div>
-    ${(stops.length || g.length) ? `<div class="flags">
-      ${stops.map(f => `<div class="flagline crit"><span><b>Стоп-фактор:</b> ${esc(f.n)} — оценка ${Math.min(...f.vals)}. ${esc(c.st.bu.cmt[f.id] || c.st.hr.cmt[f.id] || "")}</span></div>`).join("")}
-      ${g.map(f => `<div class="flagline"><span><b>${esc(f.n)}</b> — найм ${f.hire}, БУ ${f.bu}</span></div>`).join("")}
-      ${g.length ? `<p class="small muted">Расхождение в 2 балла и больше — повод сверить, что именно видел каждый оценщик.</p>` : ""}
-    </div>` : `<p class="small muted">Расхождений между этапами нет.</p>`}
+    ${(stops.length || g.length || tg.length) ? `<div class="flags">
+      ${stops.map(f => `<div class="flagline crit"><span><b>Стоп-фактор:</b> ${esc(f.n)} — минимум ${Math.min(...f.vals)}.</span></div>`).join("")}
+      ${g.length ? `<span class="eyebrow">Расхождения отбора и БУ</span>` : ""}
+      ${g.map(f => `<div class="flagline"><span><b>${esc(f.n)}</b> — отбор ${fmt(f.hire)}, БУ ${fmt(f.bu)}</span></div>`).join("")}
+      ${tg.length ? `<span class="eyebrow">Тренеры разошлись</span>` : ""}
+      ${tg.map(f => `<div class="flagline"><span><b>${esc(f.n)}</b> — ${TRAINERS.map((t,idx) => `${TRAINER_NAME[t].short} ${f.vals[idx]}`).join(" · ")}</span></div>`).join("")}
+      ${(g.length || tg.length) ? `<p class="small muted">Разрыв в 2 балла — повод свести оценщиков и понять, что именно видел каждый.</p>` : ""}
+    </div>` : `<p class="small muted">Расхождений между оценщиками нет.</p>`}
   </div></section>`;
 }
-function railDecision(c, rec){
-  const canDecide = (SESSION.role === "rop" || SESSION.role === "admin");
+function railDecision(c, rec, closed){
+  const st = stage(c);
+  const canDecide = SESSION.role === "rop" || SESSION.role === "admin";
+  if (closed) return `<section class="card"><div class="card-b" style="display:grid; gap:10px">
+    <span class="eyebrow">Итог</span><span class="pill bad" style="justify-self:start">Отказ на сверке</span>
+    <p class="small">${esc(c.rejected.comment)}</p>
+    <p class="small muted">${esc(c.rejected.by)} · ${esc(c.rejected.at)}</p>
+    ${canDecide ? `<button class="btn btn-sm" data-act="unreject">Вернуть кандидата в работу</button>` : ""}
+  </div></section>`;
   if (c.decision.status === "final"){
     const vd = VERDICTS[c.decision.verdict];
     return `<section class="card"><div class="card-b" style="display:grid; gap:10px">
-      <span class="eyebrow">Решение принято</span>
+      <span class="eyebrow">Решение по итогам БУ</span>
       <span class="pill ${vd.tone}" style="justify-self:start">${vd.t}</span>
       <p class="small">${esc(c.decision.comment)}</p>
       <p class="small muted">${esc(c.decision.by)} · ${esc(c.decision.at)}</p>
-      ${canDecide ? `<button class="btn btn-sm" data-act="undecide">Пересмотреть решение</button>` : ""}
+      ${canDecide && c.decision.verdict !== "out" && c.review.status === "none" ? `<button class="btn btn-sm" data-act="openReview">Назначить контрольный срез</button>` : ""}
+      ${canDecide ? `<button class="btn btn-ghost btn-sm" data-act="undecide">Пересмотреть решение</button>` : ""}
     </div></section>`;
   }
-  if (stage(c) !== "fin") return `<section class="card"><div class="card-b">
-    <span class="eyebrow">Решение</span>
-    <p class="small muted" style="margin-top:6px">Откроется, когда сотрудник пройдёт БУ и будут внесены все три оценки. Сейчас ждём: ${ROLES[STAGES.find(s => s.k === stage(c)).who].full}.</p>
-  </div></section>`;
+  if (st !== "fin") return `<section class="card"><div class="card-b">
+    <span class="eyebrow">Решение по итогам БУ</span>
+    <p class="small muted" style="margin-top:6px">Откроется, когда оба тренера внесут оценки. Сейчас ждём: ${STAGES.find(x => x.k === st).who.map(r => ROLES[r].full).join(" или ")}.</p></div></section>`;
   if (!canDecide) return `<section class="card"><div class="card-b">
-    <span class="eyebrow">Решение</span><p class="small muted" style="margin-top:6px">Все оценки собраны. Решение по итогам испытательного принимает РОП.</p></div></section>`;
+    <span class="eyebrow">Решение по итогам БУ</span><p class="small muted" style="margin-top:6px">Все оценки собраны. Решение принимает РОП.</p></div></section>`;
   const pre = rec.key === "out" ? "out" : rec.key === "watch" ? "watch" : "ipr";
   return `<section class="card"><div class="card-b" style="display:grid; gap:10px">
     <span class="eyebrow">Ваше решение</span>
@@ -807,13 +964,13 @@ function railDecision(c, rec){
       ${Object.entries(VERDICTS).map(([k,v]) =>
         `<button class="btn btn-sm" data-act="pickVerdict" data-v="${k}" style="justify-content:flex-start; ${window.__pick === k || (!window.__pick && k === pre) ? "border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent)" : ""}">${v.t}</button>`).join("")}
     </div>
-    <div class="field" style="margin:0"><label for="decCmt">Обоснование</label><textarea id="decCmt" placeholder="Почему именно так — одна-две фразы для истории кандидата"></textarea></div>
+    <div class="field" style="margin:0"><label for="decCmt">Обоснование</label><textarea id="decCmt" placeholder="Почему именно так — одна-две фразы в историю сотрудника">${esc(window.__decCmt || "")}</textarea></div>
     <button class="btn btn-primary" data-act="decide">Зафиксировать решение</button>
   </div></section>`;
 }
 
 /* ============================================================
-   9. ИПР / ОСНОВАНИЕ ДЛЯ РАССТАВАНИЯ
+   9. ИПР И КОНТРОЛЬНЫЙ СРЕЗ
    ============================================================ */
 function iprCard(c){
   if (c.decision.status !== "final" || blind(c)) return "";
@@ -823,7 +980,7 @@ function iprCard(c){
     return `<section class="card">
       <div class="card-h"><h2>Основание для расставания</h2></div>
       <div class="card-b" style="display:grid; gap:10px">
-        ${stops.map(f => `<div class="flagline crit"><span><b>${esc(f.n)}</b> — стоп-фактор, оценка ${Math.min(...f.vals)}.</span></div>`).join("")}
+        ${stops.map(f => `<div class="flagline crit"><span><b>${esc(f.n)}</b> — стоп-фактор, минимальная оценка ${Math.min(...f.vals)}.</span></div>`).join("")}
         ${weak.length ? `<div><span class="eyebrow">Просевшие компетенции</span>
           <ul style="margin:8px 0 0; padding-left:18px">${weak.map(w => `<li class="small">${esc(w.n)} — ${w.min} балл(а), вес ${w.w}</li>`).join("")}</ul></div>` : ""}
         <p class="small muted">Комментарий РОПа: ${esc(c.decision.comment)}</p>
@@ -832,11 +989,12 @@ function iprCard(c){
   const items = c.ipr.items;
   return `<section class="card">
     <div class="card-h"><h2>Индивидуальный план развития</h2><span class="spacer"></span>
+      ${c.emp.buEnd ? `<span class="tag">сроки от окончания БУ ${esc(c.emp.buEnd)}</span>` : `<span class="tag crit">не указана дата окончания БУ</span>`}
       ${canEdit ? `<button class="btn btn-sm no-print" data-act="genIpr">${items.length ? "Пересобрать черновик" : "Собрать черновик по просадкам"}</button>` : ""}
     </div>
     <div class="card-b" style="display:grid; gap:14px">
       <div class="field" style="margin:0"><label for="iprGoal">Цель плана</label>
-        <textarea id="iprGoal" data-act="iprGoal" ${canEdit ? "" : "readonly"} placeholder="Например: выйти на план 100% к третьему месяцу">${esc(c.ipr.goal)}</textarea></div>
+        <textarea id="iprGoal" data-act="iprGoal" ${canEdit ? "" : "readonly"} placeholder="Например: выйти на 80% плана к концу третьего месяца">${esc(c.ipr.goal)}</textarea></div>
       ${items.length ? `<div class="ipr-grid">${items.map((it, idx) => {
         const comp = BY_ID[it.id];
         return `<div class="ipr-item">
@@ -852,14 +1010,57 @@ function iprCard(c){
               <input type="date" data-act="iprField" data-f="due" data-v="${idx}" value="${esc(it.due)}" ${canEdit ? "" : "readonly"}></div>
           </div>
         </div>`;
-      }).join("")}</div>` : `<p class="small muted">Пунктов пока нет. Черновик собирается из компетенций с оценкой 0–1, отсортированных по весу.</p>`}
+      }).join("")}</div>` : `<p class="small muted">Пунктов пока нет. Черновик собирается из компетенций с оценкой 0–1, отсортированных по весу, со сроками 30/60/90 дней от окончания БУ.</p>`}
       <div class="ipr-meta">
-        <div class="field" style="margin:0"><label for="iprChk">Контрольная точка</label>
+        <div class="field" style="margin:0"><label for="iprChk">Контрольный срез</label>
           <input id="iprChk" type="date" data-act="iprChk" value="${esc(c.ipr.checkpoint)}" ${canEdit ? "" : "readonly"}></div>
       </div>
     </div></section>`;
 }
+function reviewItems(c){
+  const ids = c.ipr.items.length ? c.ipr.items.map(i => i.id) : weakItems(c).slice(0, 5).map(i => i.id);
+  return ids.map(id => BY_ID[id]).filter(Boolean);
+}
+function reviewCard(c){
+  const r = c.review;
+  if (r.status === "none" || blind(c)) return "";
+  const canEdit = ["bu","rop","admin"].includes(SESSION.role) && r.status === "open";
+  const items = reviewItems(c);
+  const rows = items.map(i => {
+    const was = buRound(c, i.id), now = r.sc[i.id];
+    const dl = (was !== undefined && now !== undefined) ? now - was : null;
+    return `<tr>
+      <td><div class="comp-name">${esc(i.n)}</div><div class="comp-hint">${esc(i.hint)}</div></td>
+      <td class="col-score">${cell(was)}</td>
+      <td class="col-score">${canEdit ? seg(i.id, "review", now) : cell(now)}</td>
+      <td class="col-delta">${dl === null ? '<span class="delta">—</span>' : `<span class="growth ${dl > 0 ? "up" : dl < 0 ? "down" : "flat"}">${dl > 0 ? "+" : ""}${dl}</span>`}</td>
+    </tr>`;
+  }).join("");
+  const done = r.status === "done";
+  const rv = done && r.verdict ? REVIEW_VERDICTS[r.verdict] : null;
+  return `<section class="card">
+    <div class="card-h"><h2>Контрольный срез по ИПР</h2><span class="spacer"></span>
+      <span class="tag">${esc(c.ipr.checkpoint || "дата не назначена")}</span>
+      ${done ? `<span class="pill ${rv ? rv.tone : "mute"}">${rv ? rv.t : "Закрыт"}</span>` : `<span class="pill info">Открыт</span>`}</div>
+    <div class="tablewrap"><table class="matrix">
+      <thead><tr><th>Компетенция из ИПР</th><th>Было на БУ</th><th>Стало</th><th>Рост</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    <div class="card-b" style="display:grid; gap:10px; border-top:1px solid var(--line)">
+      <div class="field" style="margin:0"><label for="revNote">Что изменилось за месяц сопровождения</label>
+        <textarea id="revNote" data-act="revNote" ${canEdit ? "" : "readonly"} placeholder="Наблюдения наставника и тренера">${esc(r.note)}</textarea></div>
+      ${done ? `<p class="small muted">${esc(r.comment)} — ${esc(r.by)}, ${esc(r.at)}</p>`
+        : (canEdit ? `<div style="display:grid; gap:6px">
+            ${Object.entries(REVIEW_VERDICTS).map(([k,v]) =>
+              `<button class="btn btn-sm" data-act="pickReview" data-v="${k}" style="justify-content:flex-start; ${window.__rpick === k ? "border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent)" : ""}">${v.t}</button>`).join("")}
+          </div>
+          <div class="field" style="margin:0"><label for="revCmt">Обоснование</label><textarea id="revCmt" placeholder="Коротко: что закрыто, что нет">${esc(window.__rcmt || "")}</textarea></div>
+          <button class="btn btn-primary" data-act="closeReview">Зафиксировать итог среза</button>`
+        : `<p class="small muted">Срез заполняют тренер БУ, наставник или РОП.</p>`)}
+    </div></section>`;
+}
+</script>
 
+<script>
 /* ============================================================
    10. СПРАВОЧНИК И ПОЯСНЕНИЕ
    ============================================================ */
@@ -867,7 +1068,7 @@ function viewMatrix(){
   return `
   <div class="list-head"><div>
     <span class="eyebrow">Справочник</span><h1>Матрица компетенций сейлза</h1>
-    <p class="muted small" style="margin-top:6px">Черновик: 24 компетенции в шести блоках. Вес задаёт долю в итоговом балле, стоп-фактор перекрывает любой балл, столбец «кто оценивает» разводит этапы, чтобы HR не оценивал то, что видно только на интенсиве и в работе.</p>
+    <p class="muted small" style="margin-top:6px">${ALL.length} компетенций в ${MATRIX.length} блоках. Вес задаёт долю в итоговом балле, стоп-фактор перекрывает любой балл, столбец «кто оценивает» разводит этапы: на интервью видно одно, на программе БУ — другое.</p>
   </div></div>
   <section class="card"><div class="tablewrap"><table class="matrix">
     <thead><tr><th>Компетенция</th><th>Вес</th><th>Кто оценивает</th><th>Развивающее действие</th></tr></thead>
@@ -875,7 +1076,7 @@ function viewMatrix(){
       b.items.map(i => `<tr>
         <td><div class="comp-name">${esc(i.n)} ${i.crit ? '<span class="tag crit">стоп-фактор</span>' : ""}</div><div class="comp-hint">${esc(i.hint)}</div></td>
         <td class="mono">${i.w}</td>
-        <td class="small">${i.by.map(r => ROLES[r].t).join(" · ")}${i.by.includes("hr") ? " · РОП" : ""}</td>
+        <td class="small">${[i.by.includes("hr") ? "HR · РОП" : "", i.by.includes("bu") ? "БУ (2 тренера)" : ""].filter(Boolean).join(" · ")}</td>
         <td class="small" style="max-width:34ch">${esc(i.dev)}</td>
       </tr>`).join("")).join("")}</tbody>
   </table></div></section>`;
@@ -885,74 +1086,80 @@ function viewAbout(){
   <div class="list-head"><div><span class="eyebrow">Прототип</span><h1>Как это устроено</h1></div></div>
   <div class="layout"><div style="display:grid; gap:18px">
     <section class="card"><div class="card-b" style="display:grid; gap:12px">
-      <h2>Логика процесса</h2>
+      <h2>Шесть шагов</h2>
       <ol style="margin:0; padding-left:20px; display:grid; gap:8px">
-        <li><b>HR на первичном интервью</b> оценивает компетенции, видимые в разговоре (мотивация, коммуникация, дисциплина, часть навыка продажи).</li>
-        <li><b>РОП сверяет</b>: каждая строка либо подтверждается, либо перебивается своей оценкой с комментарием. Нетронутые строки уходят как «подтвердил». Отправка этапа означает: берём в команду, ставим на поток БУ — здесь же фиксируются дата выхода, поток и наставник.</li>
-        <li><b>Биржевой университет</b> — офлайн-интенсив с погружением в компанию. Тренеры оценивают человека уже в деле и <b>вслепую</b>: до отправки своей оценки колонки HR и РОПа закрыты, чтобы не подстраиваться под уже поставленные баллы.</li>
-        <li><b>Итог испытательного</b>: система считает баллы с весами, подсвечивает расхождения ≥ 2 и стоп-факторы, предлагает вердикт. Решение фиксирует РОП с обоснованием — оставляем и развиваем по ИПР либо расстаёмся. Черновик ИПР собирается из просевших компетенций.</li>
+        <li><b>Первичное интервью.</b> HR оценивает компетенции, видимые в разговоре.</li>
+        <li><b>Сверка с РОПом.</b> Каждая строка либо подтверждается, либо перебивается своей оценкой с комментарием. Здесь же <b>отказ</b>: если РОП завернул, оффера и БУ не будет — карточка закрывается с обоснованием.</li>
+        <li><b>Выход.</b> HR фиксирует дату выхода, поток БУ, даты программы и наставника. От <b>окончания БУ</b> дальше считаются сроки ИПР и контрольный срез.</li>
+        <li><b>Биржевой университет.</b> Офлайн-интенсив. Оценивают <b>два тренера, независимо и вслепую</b>: до отправки своей оценки не видно ни колонок отбора, ни оценки коллеги. Расхождение тренеров между собой — отдельный флаг.</li>
+        <li><b>Решение по итогам БУ.</b> Матрица считает баллы, показывает расхождения и стоп-факторы, предлагает вердикт. РОП фиксирует своё с обоснованием; из просадок собирается ИПР.</li>
+        <li><b>Контрольный срез.</b> Через 30 дней после БУ — посттренинговое сопровождение: те же компетенции переоцениваются, видно рост по каждой, итог — ИПР выполнен, продлеваем или расстаёмся.</li>
       </ol>
     </div></section>
     <section class="card"><div class="card-b" style="display:grid; gap:10px">
       <h2>Как считается балл</h2>
-      <p class="small">По каждой шкале: <span class="mono">Σ(оценка × вес) / Σ(3 × вес)</span>. Отдельно «найм» (оценка HR с правками РОПа) и «БУ», итог — среднее из заполненных. Пороги вердикта: ≥ 75% — сильный старт, 55–74% — оставляем с ИПР, 40–54% — пограничная зона, ниже 40% — перспектив нет. Любой стоп-фактор с оценкой 0–1 перекрывает балл.</p>
+      <p class="small">По каждой шкале: <span class="mono">Σ(оценка × вес) / Σ(3 × вес)</span>. Отдельно «отбор» (оценка HR с правками РОПа) и «БУ» (среднее двух тренеров), итог — среднее из заполненных. Пороги: ≥ 75% — сильный старт, 55–74% — оставляем с ИПР, 40–54% — пограничная зона, ниже 40% — перспектив нет. Стоп-фактор с оценкой 0–1 <b>у любого</b> оценщика перекрывает балл.</p>
     </div></section>
     <section class="card"><div class="card-b" style="display:grid; gap:10px">
-      <h2>Что здесь условно и требует вашего решения</h2>
+      <h2>Что здесь условно</h2>
       <ul style="margin:0; padding-left:20px; display:grid; gap:6px" class="small">
-        <li>Момент найма привязан к отправке этапа РОПа: отдельного шага «оффер / выход» нет, дата выхода и поток заполняются вручную.</li>
         <li>Шкала 0–3, веса 1–3 и пороги вердикта — рабочая гипотеза, настраиваются в справочнике.</li>
         <li>Стоп-фактор пока один — «Честность и надёжность».</li>
-        <li>Слепая оценка на БУ включена по умолчанию.</li>
-        <li>Оценка на БУ — одна, по итогам программы: промежуточных срезов по неделям интенсива нет.</li>
-        <li>Кандидата, которого РОП завернул на сверке, процесс не отсекает: карточка всё равно уходит на этап БУ.</li>
+        <li>Оценка на БУ одна, по итогам программы; промежуточных срезов по неделям интенсива нет.</li>
+        <li>Тренеров ровно двое, оба обязательны; оценка на БУ считается их средним.</li>
+        <li>Контрольный срез назначает РОП после решения, переоцениваются только компетенции из ИПР.</li>
         <li>Данные лежат в браузере (localStorage), общего сервера нет: чтобы пройти все роли, выходите и заходите под разными доступами в одном браузере. Реальные персданные вносить нельзя.</li>
       </ul>
     </div></section>
     <section class="card"><div class="card-b row">
       <button class="btn" data-act="reset">Сбросить демо-данные</button>
-      <span class="small muted">Вернёт пять демо-кандидатов в исходные состояния.</span>
+      <span class="small muted">Вернёт семь демо-карточек в исходные состояния.</span>
     </div></section>
   </div><aside class="rail">
     <section class="card"><div class="card-b" style="display:grid; gap:8px">
       <span class="eyebrow">Роли и доступы</span>
-      ${USERS.map(u => `<div class="kv"><span class="k">${esc(ROLES[u.role].full)}</span><span class="v small">${esc(u.login)} / ${esc(u.pass)}</span></div>`).join("")}
+      ${USERS.map(u => `<div class="kv"><span class="k">${esc(u.role === "bu" ? ROLES.bu.full + ", " + TRAINER_NAME[u.login].short : ROLES[u.role].full)}</span><span class="v small">${esc(u.login)} / ${esc(u.pass)}</span></div>`).join("")}
     </div></section>
   </aside></div>`;
 }
-</script>
 
-<script>
 /* ============================================================
    11. ДЕЙСТВИЯ
    ============================================================ */
-const today = () => new Date().toISOString().slice(0,10);
-
-function missingCount(c, role){
-  return ALL.filter(i => i.by.includes(role) && c.st[role].sc[i.id] === undefined).length;
+function missingCount(c, key){
+  if (key === "bu") return ALL.filter(i => i.by.includes("bu") && myEval(c).sc[i.id] === undefined).length;
+  return ALL.filter(i => i.by.includes("hr") && c.st.hr.sc[i.id] === undefined).length;
 }
 function summaryText(c){
-  const s = scores(c), rec = recommend(c), g = gaps(c);
+  const s = scores(c), rec = recommend(c), g = gaps(c), tg = trainerGaps(c);
   const L = [];
   L.push(`${c.name} — ${c.pos} (${c.src})`);
-  if (emp(c).start || emp(c).stream) L.push(`Выход: ${emp(c).start || "—"} · Поток БУ: ${emp(c).stream || "—"} · Наставник: ${emp(c).mentor || "—"}`);
-  L.push(`Найм: ${s.hire ?? "—"}% · БУ: ${s.bu ?? "—"}% · Итог: ${s.total ?? "—"}%`);
+  if (c.rejected.status === "yes"){
+    L.push(`Отказ на сверке: ${c.rejected.comment} — ${c.rejected.by}, ${c.rejected.at}`);
+    return L.join("\n");
+  }
+  if (c.emp.start || c.emp.stream) L.push(`Выход: ${c.emp.start || "—"} · ${c.emp.stream || "—"} · БУ: ${c.emp.buStart || "—"} — ${c.emp.buEnd || "—"} · Наставник: ${c.emp.mentor || "—"}`);
+  L.push(`Отбор: ${s.hire ?? "—"}% · БУ: ${s.bu ?? "—"}% · Итог: ${s.total ?? "—"}%`);
   L.push(`Рекомендация матрицы: ${rec.title}`);
   if (c.decision.status === "final") L.push(`Решение РОПа: ${VERDICTS[c.decision.verdict].t} — ${c.decision.comment}`);
-  if (g.length){ L.push("", "Расхождения:"); g.forEach(x => L.push(`  ${x.n}: найм ${x.hire}, БУ ${x.bu}`)); }
+  if (g.length){ L.push("", "Расхождения отбор ↔ БУ:"); g.forEach(x => L.push(`  ${x.n}: отбор ${fmt(x.hire)}, БУ ${fmt(x.bu)}`)); }
+  if (tg.length){ L.push("", "Разошлись тренеры:"); tg.forEach(x => L.push(`  ${x.n}: ${TRAINERS.map((t,i) => TRAINER_NAME[t].short + " " + x.vals[i]).join(", ")}`)); }
   const w = weakItems(c);
   if (w.length){ L.push("", "Просадки:"); w.forEach(x => L.push(`  ${x.n} — ${x.min} (вес ${x.w})`)); }
-  ["hr","rop","bu"].forEach(k => { if (c.st[k].note) L.push("", `${ROLES[k].full}: ${c.st[k].note}`); });
+  ["hr","rop"].forEach(k => { if (c.st[k].note) L.push("", `${ROLES[k].full}: ${c.st[k].note}`); });
+  TRAINERS.forEach(t => { const ev = c.st.bu.evals[t]; if (ev.note) L.push("", `БУ, ${ev.by}: ${ev.note}`); });
   if (c.ipr.items.length){
-    L.push("", `ИПР (контрольная точка ${c.ipr.checkpoint}):`);
+    L.push("", `ИПР (контрольный срез ${c.ipr.checkpoint || "—"}):`);
     c.ipr.items.forEach((it,i) => L.push(`  ${i+1}. ${BY_ID[it.id] ? BY_ID[it.id].n : it.id} — ${it.action} · до ${it.due}${it.metric ? " · критерий: " + it.metric : ""}`));
+  }
+  if (c.review.status === "done"){
+    L.push("", `Контрольный срез: ${REVIEW_VERDICTS[c.review.verdict].t} — ${c.review.comment} (${c.review.by}, ${c.review.at})`);
   }
   return L.join("\n");
 }
 function copyText(t){
-  if (navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(t).then(() => toast("Сводка скопирована")).catch(() => fallbackCopy(t));
-  } else fallbackCopy(t);
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(() => toast("Сводка скопирована")).catch(() => fallbackCopy(t));
+  else fallbackCopy(t);
 }
 function fallbackCopy(t){
   const ta = document.createElement("textarea");
@@ -961,6 +1168,10 @@ function fallbackCopy(t){
   try { document.execCommand("copy"); toast("Сводка скопирована"); } catch(e){ toast("Скопировать не вышло — выделите текст вручную"); }
   ta.remove();
 }
+function keepDrafts(){
+  const d = $("#decCmt"); if (d) window.__decCmt = d.value;
+  const r = $("#revCmt"); if (r) window.__rcmt = r.value;
+}
 
 document.addEventListener("click", e => {
   const el = e.target.closest("[data-act]");
@@ -968,39 +1179,51 @@ document.addEventListener("click", e => {
   const act = el.dataset.act, v = el.dataset.v;
   const c = ROUTE.id ? cand(ROUTE.id) : null;
 
-  if (act === "nav"){ ROUTE = {view:v, id:null}; window.__pick = null; render(); }
-  else if (act === "open"){ ROUTE = {view:"cand", id:v}; window.__pick = null; render(); }
+  if (act === "nav"){ ROUTE = {view:v, id:null}; window.__pick = null; window.__rpick = null; window.__decCmt = ""; window.__rcmt = ""; render(); }
+  else if (act === "open"){ ROUTE = {view:"cand", id:v}; window.__pick = null; window.__rpick = null; window.__decCmt = ""; window.__rcmt = ""; render(); }
   else if (act === "add"){ window.__addOpen = true; render(); }
+  else if (act === "addCancel"){ window.__addOpen = false; render(); }
   else if (act === "addSave"){
     const name = ($("#newName").value || "").trim();
     if (!name){ toast("Впишите имя кандидата"); return; }
     const nc = newCand(name, ($("#newPos").value || "Менеджер по продажам").trim(), ($("#newSrc").value || "—").trim());
-    nc.created = today();
     DB.candidates.unshift(nc); save();
     window.__addOpen = false; ROUTE = {view:"cand", id:nc.id}; render();
   }
-  else if (act === "addCancel"){ window.__addOpen = false; render(); }
   else if (act === "score" && c){
     const role = el.dataset.role, id = el.dataset.id, val = Number(el.dataset.value);
-    if (c.st[role].sc[id] === val && role !== "rop") delete c.st[role].sc[id];
-    else c.st[role].sc[id] = val;
+    const bag = role === "bu" ? myEval(c).sc : role === "review" ? c.review.sc : c.st[role].sc;
+    if (bag[id] === val && role !== "rop") delete bag[id]; else bag[id] = val;
     save(); render();
   }
   else if (act === "submitStage" && c){
-    const ed = editorStage(c);
-    if (!ed) return;
-    if (ed !== "rop"){
-      const miss = missingCount(c, ed);
-      if (miss){ toast(`Не оценено компетенций: ${miss}`); return; }
+    const ed = editorStage(c); if (!ed) return;
+    const miss = ed === "rop" ? 0 : missingCount(c, ed);
+    if (miss){ toast(`Не оценено компетенций: ${miss}`); return; }
+    if (ed === "bu"){
+      const ev = myEval(c);
+      ev.status = "submitted"; ev.by = SESSION.name; ev.at = today();
+      save(); render();
+      toast(stageDone(c, "bu") ? "Оба тренера внесли оценки — карточка ушла РОПу" : "Оценка внесена, ждём второго тренера");
+      return;
     }
     c.st[ed].status = "submitted"; c.st[ed].by = SESSION.name; c.st[ed].at = today();
-    save(); render(); toast(ed === "bu" ? "Оценка БУ внесена, оценки коллег открыты" : "Этап передан дальше");
+    save(); render(); toast(ed === "rop" ? "Оффер согласован, HR оформляет выход" : "Этап передан дальше");
   }
-  else if (act === "pickVerdict"){
-    const t = $("#decCmt"); if (t && c) window.__decCmt = t.value;
-    window.__pick = v; render();
-    const t2 = $("#decCmt"); if (t2 && window.__decCmt) t2.value = window.__decCmt;
+  else if (act === "reject" && c){
+    const note = $("#stageNote") ? $("#stageNote").value.trim() : "";
+    if (!note){ toast("Напишите резюме этапа — оно станет обоснованием отказа"); return; }
+    c.st.rop.note = note;
+    c.rejected = {status:"yes", comment:note, by:SESSION.name, at:today()};
+    save(); render(); toast("Кандидату отказано, путь закрыт");
   }
+  else if (act === "unreject" && c){ c.rejected = {status:"no", comment:"", by:"", at:""}; save(); render(); toast("Кандидат снова на сверке"); }
+  else if (act === "submitOut" && c){
+    if (!c.emp.start || !c.emp.stream){ toast("Нужны дата выхода и поток БУ"); return; }
+    c.st.out = {status:"submitted", by:SESSION.name, at:today()};
+    save(); render(); toast("Выход зафиксирован, карточка у тренеров БУ");
+  }
+  else if (act === "pickVerdict"){ keepDrafts(); window.__pick = v; render(); }
   else if (act === "decide" && c){
     const rec = recommend(c);
     const pre = rec.key === "out" ? "out" : rec.key === "watch" ? "watch" : "ipr";
@@ -1008,19 +1231,40 @@ document.addEventListener("click", e => {
     const cmt = ($("#decCmt").value || "").trim();
     if (!cmt){ toast("Без обоснования решение не фиксируем"); return; }
     c.decision = {status:"final", verdict, comment:cmt, by:SESSION.name, at:today()};
-    if (verdict !== "out" && !c.ipr.items.length) c.ipr.items = buildIPR(c);
+    if (verdict !== "out"){
+      if (!c.ipr.items.length) c.ipr.items = buildIPR(c);
+      if (!c.ipr.checkpoint) c.ipr.checkpoint = shift(iprBase(c), 30);
+    }
     window.__pick = null; window.__decCmt = "";
     save(); render(); toast("Решение зафиксировано");
   }
   else if (act === "undecide" && c){ c.decision = {status:"pending", verdict:"", comment:"", by:"", at:""}; save(); render(); }
-  else if (act === "reopen" && c){
-    const last = ["bu","rop","hr"].find(k => c.st[k].status === "submitted");
-    if (!last) return;
-    c.st[last].status = "pending"; c.decision = {status:"pending", verdict:"", comment:"", by:"", at:""};
-    save(); render(); toast(`Этап «${STAGES.find(s => s.k === last).t}» возвращён на доработку`);
+  else if (act === "openReview" && c){
+    if (!c.ipr.checkpoint) c.ipr.checkpoint = shift(iprBase(c), 30);
+    c.review.status = "open"; save(); render(); toast(`Контрольный срез назначен на ${c.ipr.checkpoint}`);
+  }
+  else if (act === "pickReview"){ keepDrafts(); window.__rpick = v; render(); }
+  else if (act === "closeReview" && c){
+    if (!window.__rpick){ toast("Выберите итог среза"); return; }
+    const cmt = ($("#revCmt").value || "").trim();
+    if (!cmt){ toast("Нужно обоснование итога"); return; }
+    c.review.status = "done"; c.review.verdict = window.__rpick; c.review.comment = cmt;
+    c.review.by = SESSION.name; c.review.at = today();
+    window.__rpick = null; window.__rcmt = "";
+    save(); render(); toast("Итог контрольного среза зафиксирован");
   }
   else if (act === "genIpr" && c){ c.ipr.items = buildIPR(c); save(); render(); toast("Черновик ИПР собран по просадкам"); }
   else if (act === "delIpr" && c){ c.ipr.items.splice(Number(v), 1); save(); render(); }
+  else if (act === "reopen" && c){
+    if (c.rejected.status === "yes"){ c.rejected = {status:"no", comment:"", by:"", at:""}; }
+    else if (c.review.status === "done"){ c.review.status = "open"; c.review.verdict = ""; c.review.comment = ""; }
+    else if (c.decision.status === "final"){ c.decision = {status:"pending", verdict:"", comment:"", by:"", at:""}; }
+    else if (stageDone(c, "bu")){ TRAINERS.forEach(t => { c.st.bu.evals[t].status = "pending"; }); }
+    else if (stageDone(c, "out")){ c.st.out = {status:"pending", by:"", at:""}; }
+    else if (stageDone(c, "rop")){ c.st.rop.status = "pending"; }
+    else if (stageDone(c, "hr")){ c.st.hr.status = "pending"; }
+    save(); render(); toast("Последний закрытый шаг возвращён в работу");
+  }
   else if (act === "copy" && c){ copyText(summaryText(c)); }
   else if (act === "print"){ window.print(); }
   else if (act === "reset"){ DB = seed(); save(); ROUTE = {view:"list", id:null}; render(); toast("Демо-данные сброшены"); }
@@ -1031,39 +1275,20 @@ document.addEventListener("change", e => {
   if (!el) return;
   const c = ROUTE.id ? cand(ROUTE.id) : null;
   if (!c) return;
-  const act = el.dataset.act;
-  if (act === "cmt"){
-    const ed = editorStage(c); if (!ed) return;
+  const act = el.dataset.act, ed = editorStage(c);
+  const rec = ed === "bu" ? myEval(c) : (ed ? c.st[ed] : null);
+  if (act === "cmt" && rec){
     const t = el.value.trim();
-    if (t) c.st[ed].cmt[el.dataset.id] = t; else delete c.st[ed].cmt[el.dataset.id];
+    if (t) rec.cmt[el.dataset.id] = t; else delete rec.cmt[el.dataset.id];
     save();
   }
-  else if (act === "note"){ const ed = editorStage(c); if (ed){ c.st[ed].note = el.value; save(); } }
-  else if (act === "empField"){ emp(c)[el.dataset.f] = el.value; save(); }
+  else if (act === "note" && rec){ rec.note = el.value; save(); }
+  else if (act === "empField"){ c.emp[el.dataset.f] = el.value; save(); }
   else if (act === "iprGoal"){ c.ipr.goal = el.value; save(); }
   else if (act === "iprChk"){ c.ipr.checkpoint = el.value; save(); }
-  else if (act === "iprField"){
-    const it = c.ipr.items[Number(el.dataset.v)];
-    if (it){ it[el.dataset.f] = el.value; save(); }
-  }
+  else if (act === "revNote"){ c.review.note = el.value; save(); }
+  else if (act === "iprField"){ const it = c.ipr.items[Number(el.dataset.v)]; if (it){ it[el.dataset.f] = el.value; save(); } }
 });
-
-/* форма нового кандидата в списке */
-const _viewList = viewList;
-viewList = function(){
-  const form = window.__addOpen ? `
-    <section class="card" style="margin-bottom:14px"><div class="card-b" style="display:grid; gap:10px">
-      <span class="eyebrow">Новый кандидат</span>
-      <div class="ipr-meta" style="grid-template-columns:1fr 1fr 1fr">
-        <div class="field" style="margin:0"><label for="newName">Имя</label><input id="newName" type="text" placeholder="Имя и фамилия"></div>
-        <div class="field" style="margin:0"><label for="newPos">Позиция</label><input id="newPos" type="text" value="Менеджер по продажам"></div>
-        <div class="field" style="margin:0"><label for="newSrc">Источник</label><input id="newSrc" type="text" placeholder="hh.ru, рекомендация…"></div>
-      </div>
-      <div class="row"><button class="btn btn-primary" data-act="addSave">Создать карточку</button>
-      <button class="btn btn-ghost" data-act="addCancel">Отмена</button></div>
-    </div></section>` : "";
-  return form + _viewList();
-};
 
 render();
 </script>
