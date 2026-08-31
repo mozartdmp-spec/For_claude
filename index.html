@@ -257,10 +257,6 @@ table.matrix tr:hover td:not(.blockcell){background:color-mix(in srgb,var(--surf
 .cand .pillcell{justify-self:end}
 .step.skip{opacity:.5}
 .step.skip .s{text-decoration:line-through}
-.bu-cell{display:flex; gap:5px; align-items:center; flex-wrap:wrap}
-.bu-cell .who{font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--muted)}
-.bu-avg{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--muted); margin-left:2px}
-.split{border-left:2px solid var(--warn); padding-left:7px}
 .growth{font-family:"IBM Plex Mono",monospace; font-weight:600}
 .growth.up{color:var(--good)} .growth.down{color:var(--bad)} .growth.flat{color:var(--muted)}
 .trainer-note{border-left:2px solid var(--line-2); padding-left:10px; display:grid; gap:2px}
@@ -350,14 +346,14 @@ const USERS = [
   {login:"admin", pass:"demo", name:"Админ процесса",   role:"admin"}
 ];
 const TRAINERS = USERS.filter(u => u.role === "bu").map(u => u.login);
-const TRAINER_NAME = Object.fromEntries(USERS.filter(u => u.role === "bu").map((u,i) => [u.login, {name:u.name, short:"Т" + (i+1)}]));
+
 </script>
 
 <script>
 /* ============================================================
    2. ХРАНИЛИЩЕ И ДЕМО-ДАННЫЕ
    ============================================================ */
-const KEY = "ms.v3";
+const KEY = "ms.v4";
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -377,12 +373,11 @@ function gen(seed, role, bias){
 }
 
 function emptyStage(){ return {status:"pending", sc:{}, cmt:{}, note:"", by:"", at:""}; }
-function emptyEval(){ return {status:"pending", sc:{}, cmt:{}, note:"", by:"", at:""}; }
+function buStage(){ return {status:"pending", sc:{}, cmt:{}, note:"", by:"", at:"", authors:[]}; }
 function newCand(name, pos, src){
   return {id:uid(), name, pos, src, created:today(),
     emp:{start:"", stream:"", buStart:"", buEnd:"", mentor:""},
-    st:{hr:emptyStage(), rop:emptyStage(), out:{status:"pending", by:"", at:""},
-        bu:{evals:Object.fromEntries(TRAINERS.map(t => [t, emptyEval()]))}},
+    st:{hr:emptyStage(), rop:emptyStage(), out:{status:"pending", by:"", at:""}, bu:buStage()},
     rejected:{status:"no", comment:"", by:"", at:""},
     decision:{status:"pending", verdict:"", comment:"", by:"", at:""},
     ipr:{goal:"", checkpoint:"", items:[]},
@@ -391,7 +386,7 @@ function newCand(name, pos, src){
 function stageDone(c, k){
   if (k === "hr" || k === "rop") return c.st[k].status === "submitted";
   if (k === "out") return c.st.out.status === "submitted";
-  if (k === "bu") return TRAINERS.every(t => c.st.bu.evals[t].status === "submitted");
+  if (k === "bu") return c.st.bu.status === "submitted";
   if (k === "fin") return c.decision.status === "final";
   if (k === "review") return c.review.status === "done";
   return false;
@@ -425,7 +420,8 @@ function seed(){
   c4.emp = {start:daysAgo(21), stream:"Поток №14", buStart:daysAgo(21), buEnd:daysAgo(7), mentor:"Сергей Лыков"};
   c4.st.out = {status:"submitted", by:"Ольга Тимина", at:daysAgo(24)};
   const a1 = gen(31,"bu",2.0); a1.l1 = 2;
-  c4.st.bu.evals.bu1 = {status:"submitted", sc:a1, cmt:{g2:"Аттестацию сдал со второго раза, продукт знает ровно."}, note:"Работоспособный, но техника пока сырая.", by:"Никита Бельских", at:daysAgo(6)};
+  const half = {}; Object.keys(a1).slice(0, 9).forEach(k => { half[k] = a1[k]; });
+  c4.st.bu = {status:"pending", sc:half, cmt:{g2:"Аттестацию сдал со второго раза, продукт знает ровно."}, note:"Черновик после первого дня разборов, дозаполняем с Дарьей.", by:"", at:"", authors:["bu1"]};
 
   const c5 = mk("Марина Швец", "Старший менеджер", "Рекомендация", 45);
   const mHr = gen(37,"hr",2.5); mHr.l1 = 3;
@@ -433,10 +429,11 @@ function seed(){
   c5.st.rop = {status:"submitted", sc:{}, cmt:{}, note:"С оценкой HR согласен полностью, выводим.", by:"Сергей Лыков", at:daysAgo(43)};
   c5.emp = {start:daysAgo(35), stream:"Поток №13", buStart:daysAgo(35), buEnd:daysAgo(21), mentor:"Сергей Лыков"};
   c5.st.out = {status:"submitted", by:"Ольга Тимина", at:daysAgo(38)};
-  const m1 = gen(41,"bu",1.6); m1.l1 = 2;
-  c5.st.bu.evals.bu1 = {status:"submitted", sc:m1, cmt:{s3:"На тренажёре возражений дважды дала скидку без обмена."}, note:"На интенсиве слабее, чем на интервью: сильная самопрезентация, техника проседает.", by:"Никита Бельских", at:daysAgo(20)};
-  const m2 = gen(47,"bu",1.9); m2.l1 = 2;
-  c5.st.bu.evals.bu2 = {status:"submitted", sc:m2, cmt:{c2:"Перебивает, резюме за клиента не делает."}, note:"Быстро схватывает продукт, слушать не умеет.", by:"Дарья Кимова", at:daysAgo(20)};
+  const m1 = gen(41,"bu",1.7); m1.l1 = 2;
+  c5.st.bu = {status:"submitted", sc:m1,
+    cmt:{s3:"На тренажёре возражений дважды дала скидку без обмена — сошлись на 1.", c2:"Перебивает, резюме за клиента не делает."},
+    note:"Совместный разбор: на интенсиве слабее, чем на интервью. Сильная самопрезентация, техника и слушание проседают.",
+    by:"Никита Бельских и Дарья Кимова", at:daysAgo(20), authors:["bu1","bu2"]};
 
   const c6 = mk("Павел Гуров", "Менеджер по продажам", "hh.ru", 60);
   c6.st.hr = {status:"submitted", sc:gen(53,"hr",2.2), cmt:{}, note:"Резюме отличное, проверяли рекомендации.", by:"Ольга Тимина", at:daysAgo(59)};
@@ -444,9 +441,10 @@ function seed(){
   c6.emp = {start:daysAgo(50), stream:"Поток №12", buStart:daysAgo(50), buEnd:daysAgo(36), mentor:"Никита Бельских"};
   c6.st.out = {status:"submitted", by:"Ольга Тимина", at:daysAgo(53)};
   const s1 = gen(59,"bu",1.5); s1.l1 = 0; s1.s4 = 1;
-  const s2 = gen(61,"bu",1.6); s2.l1 = 1;
-  c6.st.bu.evals.bu1 = {status:"submitted", sc:s1, cmt:{l1:"Приписал себе две чужие сделки на разборе, при проверке не признал."}, note:"Стоп-фактор по надёжности, программу не доучиваем.", by:"Никита Бельских", at:daysAgo(35)};
-  c6.st.bu.evals.bu2 = {status:"submitted", sc:s2, cmt:{}, note:"Подтверждаю: цифры в отчёте по тренажёрам не сходятся с фактом.", by:"Дарья Кимова", at:daysAgo(35)};
+  c6.st.bu = {status:"submitted", sc:s1,
+    cmt:{l1:"Приписал себе две чужие сделки на разборе, при проверке не признал. Оба тренера подтверждают."},
+    note:"Совместное решение: стоп-фактор по надёжности, цифры в отчёте по тренажёрам не сходятся с фактом. Программу не доучиваем.",
+    by:"Никита Бельских и Дарья Кимова", at:daysAgo(35), authors:["bu1","bu2"]};
   c6.decision = {status:"final", verdict:"out", comment:"Стоп-фактор по честности подтверждён обоими тренерами. Расстаёмся на испытательном.", by:"Сергей Лыков", at:daysAgo(34)};
 
   const c7 = mk("Егор Пименов", "Менеджер по продажам", "Рекомендация", 75);
@@ -456,9 +454,9 @@ function seed(){
   c7.emp = {start:daysAgo(66), stream:"Поток №12", buStart:daysAgo(66), buEnd:daysAgo(52), mentor:"Дарья Кимова"};
   c7.st.out = {status:"submitted", by:"Ольга Тимина", at:daysAgo(69)};
   const e1 = gen(71,"bu",1.9); e1.l1 = 3;
-  c7.st.bu.evals.bu1 = {status:"submitted", sc:e1, cmt:{}, note:"Старательный, техника догоняется.", by:"Никита Бельских", at:daysAgo(51)};
-  const e2s = gen(73,"bu",2.0); e2s.l1 = 3;
-  c7.st.bu.evals.bu2 = {status:"submitted", sc:e2s, cmt:{}, note:"Аттестацию сдал с первого раза.", by:"Дарья Кимова", at:daysAgo(51)};
+  c7.st.bu = {status:"submitted", sc:e1, cmt:{},
+    note:"Аттестацию сдал с первого раза, старательный. По технике сошлись: догоняется наставничеством.",
+    by:"Никита Бельских и Дарья Кимова", at:daysAgo(51), authors:["bu1","bu2"]};
   c7.decision = {status:"final", verdict:"ipr", comment:"Оставляем. Просадки в закрытии и возражениях закрываем планом на 60 дней.", by:"Сергей Лыков", at:daysAgo(50)};
   c7.ipr = {goal:"Выйти на 80% плана к концу третьего месяца, закрывать сделки без напоминаний РОПа.", checkpoint:shift(c7.emp.buEnd, 30), items:[]};
   c7.ipr.items = buildIPR(c7);
@@ -479,12 +477,8 @@ function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add
    3. РАСЧЁТ ОЦЕНОК
    ============================================================ */
 const hireVal = (c, id) => (c.st.rop.sc[id] !== undefined ? c.st.rop.sc[id] : c.st.hr.sc[id]);
-const trainerVals = (c, id) => TRAINERS.map(t => c.st.bu.evals[t].sc[id]).filter(v => v !== undefined);
-function buVal(c, id){
-  const v = trainerVals(c, id);
-  return v.length ? v.reduce((a,b) => a+b, 0) / v.length : undefined;
-}
-const buRound = (c, id) => { const v = buVal(c, id); return v === undefined ? undefined : Math.round(v); };
+const buVal = (c, id) => c.st.bu.sc[id];
+const buRound = buVal;
 const fmt = v => v === undefined ? "—" : (Number.isInteger(v) ? String(v) : v.toFixed(1));
 
 function pct(c, getter, filterRole){
@@ -508,13 +502,10 @@ function gaps(c){
     return a !== undefined && b !== undefined && Math.abs(a - b) >= 2;
   }).map(i => ({...i, hire:hireVal(c, i.id), bu:buVal(c, i.id)}));
 }
-function trainerGaps(c){
-  return ALL.filter(i => { const v = trainerVals(c, i.id); return v.length === 2 && Math.abs(v[0] - v[1]) >= 2; })
-            .map(i => ({...i, vals:trainerVals(c, i.id)}));
-}
+
 function stopFlags(c){
   return ALL.filter(i => i.crit).map(i => {
-    const vals = [hireVal(c, i.id), ...trainerVals(c, i.id)].filter(v => v !== undefined);
+    const vals = [hireVal(c, i.id), buVal(c, i.id)].filter(v => v !== undefined);
     return vals.some(v => v <= 1) ? {...i, vals} : null;
   }).filter(Boolean);
 }
@@ -575,7 +566,7 @@ function renderGate(){
   USERS.forEach(u => {
     const b = document.createElement("button");
     b.type = "button"; b.className = "demo-user";
-    const label = u.role === "bu" ? `${ROLES.bu.full}, ${TRAINER_NAME[u.login].short}` : ROLES[u.role].full;
+    const label = ROLES[u.role].full;
     b.innerHTML = `<span><b>${esc(label)}</b><br><span class="small muted">${esc(u.name)}</span></span><span class="mono small">${esc(u.login)} / ${esc(u.pass)}</span>`;
     b.addEventListener("click", () => { $("#login").value = u.login; $("#pass").value = u.pass; $("#loginErr").textContent = ""; });
     box.appendChild(b);
@@ -601,8 +592,8 @@ function render(){
   if (!SESSION){ renderGate(); return; }
   $("#gate").hidden = true; $("#app").hidden = false;
   $("#uName").textContent = SESSION.name;
-  $("#uRole").textContent = SESSION.role === "bu" ? `${ROLES.bu.full}, ${TRAINER_NAME[SESSION.login].short}` : ROLES[SESSION.role].full;
-  $("#uAv").textContent = SESSION.role === "bu" ? TRAINER_NAME[SESSION.login].short : ROLES[SESSION.role].t;
+  $("#uRole").textContent = ROLES[SESSION.role].full;
+  $("#uAv").textContent = ROLES[SESSION.role].t;
   const nav = [["list","Оценка"],["matrix","Матрица компетенций"],["about","О прототипе"]];
   $("#nav").innerHTML = nav.map(([k,t]) =>
     `<button data-act="nav" data-v="${k}" ${ROUTE.view===k || (k==="list"&&ROUTE.view==="cand") ? 'aria-current="page"' : ""}>${t}</button>`).join("");
@@ -617,22 +608,20 @@ function render(){
 /* ============================================================
    5. ПРАВА И СТАТУСЫ
    ============================================================ */
-function myEval(c){ return SESSION.role === "bu" ? c.st.bu.evals[SESSION.login] : null; }
+function buAuthors(c){ return c.st.bu.authors.map(l => (USERS.find(u => u.login === l) || {}).name).filter(Boolean); }
+function markAuthor(c){ if (SESSION.role === "bu" && !c.st.bu.authors.includes(SESSION.login)) c.st.bu.authors.push(SESSION.login); }
 function editorStage(c){
   const st = stage(c);
   if (st === "closed" || st === "done" || st === "fin" || st === "review") return null;
-  if (st === "bu"){
-    if (SESSION.role !== "bu") return null;
-    return myEval(c).status === "submitted" ? null : "bu";
-  }
+  if (st === "bu") return SESSION.role === "bu" ? "bu" : null;
   const s = STAGES.find(x => x.k === st);
   return (s.who.includes(SESSION.role) || SESSION.role === "admin") ? st : null;
 }
-function blind(c){ return SESSION.role === "bu" && myEval(c) && myEval(c).status !== "submitted"; }
+function blind(c){ return SESSION.role === "bu" && c.st.bu.status !== "submitted"; }
 function waitingMe(c){
   const st = stage(c);
   if (st === "closed" || st === "done") return false;
-  if (st === "bu") return SESSION.role === "bu" && myEval(c).status !== "submitted";
+  if (st === "bu") return SESSION.role === "bu";
   if (SESSION.role === "admin") return false;
   return STAGES.find(x => x.k === st).who.includes(SESSION.role);
 }
@@ -712,19 +701,6 @@ function seg(id, role, val){
   return `<span class="seg" role="group" aria-label="Оценка">${[0,1,2,3].map(v =>
     `<button type="button" data-act="score" data-role="${role}" data-id="${id}" data-value="${v}" aria-pressed="${val === v}" title="${esc(SCALE[v].t)}">${v}</button>`).join("")}</span>`;
 }
-function buCellView(c, id, hideOther){
-  const parts = TRAINERS.map(t => {
-    const ev = c.st.bu.evals[t], v = ev.sc[id];
-    if (hideOther && t !== SESSION.login) return `<span class="who">${TRAINER_NAME[t].short}</span>${hatch}`;
-    if (ev.status !== "submitted" && v === undefined) return "";
-    return `<span class="who" title="${esc(TRAINER_NAME[t].name)}">${TRAINER_NAME[t].short}</span>${cell(v)}`;
-  }).filter(Boolean).join("");
-  if (!parts) return `<span class="muted small">—</span>`;
-  const vals = trainerVals(c, id);
-  const split = vals.length === 2 && Math.abs(vals[0] - vals[1]) >= 2;
-  const avg = buVal(c, id);
-  return `<span class="bu-cell ${split ? "split" : ""}" ${split ? 'title="Тренеры разошлись на 2 балла"' : ""}>${parts}${vals.length === 2 ? `<span class="bu-avg">ср. ${fmt(avg)}</span>` : ""}</span>`;
-}
 function rowComments(c, i, edKey){
   const out = [];
   const add = (label, t) => out.push(`<div class="comp-hint" style="color:var(--ink-2)">${label}: «${esc(t)}»</div>`);
@@ -732,13 +708,7 @@ function rowComments(c, i, edKey){
     if (c.st.hr.cmt[i.id] && edKey !== "hr") add("HR", c.st.hr.cmt[i.id]);
     if (c.st.rop.cmt[i.id] && edKey !== "rop") add("РОП", c.st.rop.cmt[i.id]);
   }
-  TRAINERS.forEach(t => {
-    const ev = c.st.bu.evals[t];
-    if (!ev.cmt[i.id]) return;
-    if (SESSION.login === t && edKey === "bu") return;
-    if (blind(c)) return;
-    add(`БУ, ${TRAINER_NAME[t].name}`, ev.cmt[i.id]);
-  });
+  if (c.st.bu.cmt[i.id] && edKey !== "bu") add("БУ", c.st.bu.cmt[i.id]);
   return out.join("");
 }
 function empCard(c){
@@ -768,7 +738,7 @@ function viewCand(c){
   const ed = editorStage(c);
   const edTable = ["hr","rop","bu"].includes(ed) ? ed : null;
   const st = stage(c), isBlind = blind(c), s = scores(c);
-  const rec = recommend(c), g = gaps(c), tg = trainerGaps(c), stops = stopFlags(c);
+  const rec = recommend(c), g = gaps(c), stops = stopFlags(c);
   const closed = st === "closed";
 
   const stepper = STAGES.map(x => {
@@ -778,8 +748,8 @@ function viewCand(c){
     let sub = "Недоступно";
     if (skip) sub = "Не проводится";
     else if (done){
-      const by = x.k === "fin" ? c.decision : x.k === "review" ? c.review : x.k === "bu" ? c.st.bu.evals[TRAINERS[1]] : c.st[x.k];
-      sub = `✓ ${esc(x.k === "bu" ? "оба тренера" : by.by)}, ${esc(by.at)}`;
+      const by = x.k === "fin" ? c.decision : x.k === "review" ? c.review : c.st[x.k];
+      sub = `✓ ${esc(by.by)}, ${esc(by.at)}`;
     }
     else if (active) sub = `Ждёт: ${x.who.map(r => ROLES[r].t).join(" / ")}`;
     return `<div class="step ${done ? "done" : ""} ${active ? "active" : ""} ${skip ? "skip" : ""} ${!done && !active && !skip ? "locked" : ""}">
@@ -791,13 +761,13 @@ function viewCand(c){
       const hv = c.st.hr.sc[i.id], rv = c.st.rop.sc[i.id];
       const eff = hireVal(c, i.id), bAvg = buVal(c, i.id);
       const d = (eff !== undefined && bAvg !== undefined) ? Math.abs(eff - bAvg) : null;
-      const myV = edTable === "bu" ? myEval(c).sc[i.id] : undefined;
+      const bv = c.st.bu.sc[i.id];
       return `<tr>
         <td>
           <div class="comp-name">${esc(i.n)} ${i.crit ? '<span class="tag crit">стоп-фактор</span>' : ""} <span class="tag">вес ${i.w}</span></div>
           <div class="comp-hint">${esc(i.hint)}</div>
           ${rowComments(c, i, edTable)}
-          ${edTable && i.by.includes(edTable === "rop" ? "hr" : (edTable === "bu" ? "bu" : "hr")) ? `<details class="rowcmt no-print" ${(edTable === "bu" ? myEval(c) : c.st[edTable]).cmt[i.id] ? "open" : ""}><summary>Комментарий</summary><textarea data-act="cmt" data-id="${i.id}" placeholder="Что именно увидели по этой компетенции">${esc((edTable === "bu" ? myEval(c) : c.st[edTable]).cmt[i.id] || "")}</textarea></details>` : ""}
+          ${edTable && i.by.includes(edTable === "rop" ? "hr" : edTable) ? `<details class="rowcmt no-print" ${c.st[edTable].cmt[i.id] ? "open" : ""}><summary>Комментарий</summary><textarea data-act="cmt" data-id="${i.id}" placeholder="Что именно увидели по этой компетенции">${esc(c.st[edTable].cmt[i.id] || "")}</textarea></details>` : ""}
         </td>
         <td class="col-score">${!i.by.includes("hr") ? '<span class="muted small">не на этом этапе</span>'
             : edTable === "hr" ? seg(i.id, "hr", hv) : (isBlind ? hatch : cell(hv))}</td>
@@ -806,33 +776,33 @@ function viewCand(c){
             : isBlind ? hatch
             : (rv !== undefined ? `${cell(rv)} <span class="tag" style="margin-left:4px">${rv !== hv ? "корректировка" : "подтвердил"}</span>`
               : (stageDone(c, "rop") ? '<span class="tag">подтвердил</span>' : '<span class="muted small">—</span>'))}</td>
-        <td class="col-score" style="width:180px">${!i.by.includes("bu") ? '<span class="muted small">не на этом этапе</span>'
-            : edTable === "bu" ? seg(i.id, "bu", myV) : buCellView(c, i.id, isBlind)}</td>
-        <td class="col-delta">${d === null ? '<span class="delta">—</span>' : `<span class="delta ${d >= 2 ? "flag" : ""}">${d >= 2 ? "▲ " : ""}${fmt(d)}</span>`}</td>
+        <td class="col-score">${!i.by.includes("bu") ? '<span class="muted small">не на этом этапе</span>'
+            : edTable === "bu" ? seg(i.id, "bu", bv) : cell(bv)}</td>
+        <td class="col-delta">${isBlind ? '<span class="delta" title="Скрыто до фиксации оценки БУ">·</span>' : (d === null ? '<span class="delta">—</span>' : `<span class="delta ${d >= 2 ? "flag" : ""}">${d >= 2 ? "▲ " : ""}${fmt(d)}</span>`)}</td>
       </tr>`;
     }).join("");
     return `<tr class="block-row"><td colspan="5" class="blockcell"><span class="eyebrow">${esc(b.block)}</span></td></tr>${items}`;
   }).join("");
 
-  const edRec = edTable === "bu" ? myEval(c) : (edTable ? c.st[edTable] : null);
+  const edRec = edTable ? c.st[edTable] : null;
   const noteBlock = edTable ? `
     <div class="card-b no-print" style="border-top:1px solid var(--line); display:grid; gap:10px">
       <div class="field" style="margin:0">
-        <label for="stageNote">Резюме этапа — ${esc(edTable === "bu" ? ROLES.bu.full + ", " + SESSION.name : ROLES[edTable].full)}</label>
+        <label for="stageNote">Резюме этапа — ${esc(edTable === "bu" ? "совместное решение тренеров БУ" : ROLES[edTable].full)}</label>
         <textarea id="stageNote" data-act="note" placeholder="Что увидели, на что смотреть дальше">${esc(edRec.note)}</textarea>
       </div>
       <div class="row">
-        <button class="btn btn-primary" data-act="submitStage">${edTable === "rop" ? "Подтвердить и сделать оффер" : (edTable === "hr" ? "Передать РОПу" : "Внести свою оценку")}</button>
+        <button class="btn btn-primary" data-act="submitStage">${edTable === "rop" ? "Подтвердить и сделать оффер" : (edTable === "hr" ? "Передать РОПу" : "Зафиксировать оценку БУ")}</button>
         ${edTable === "rop" ? `<button class="btn" data-act="reject" style="border-color:color-mix(in srgb,var(--bad) 45%,transparent); color:var(--bad)">Отказать кандидату</button>` : ""}
-        <span class="small muted">${edTable === "rop" ? "Отказ закрывает путь: оффера и БУ не будет. Нужно резюме этапа как обоснование." : (edTable === "bu" ? "Второй тренер вас не видит, пока не внесёт своё. После отправки откроются все колонки." : "После отправки правки доступны только админу.")}</span>
+        <span class="small muted">${edTable === "rop" ? "Отказ закрывает путь: оффера и БУ не будет. Нужно резюме этапа как обоснование." : (edTable === "bu" ? "Лист общий: правки обоих тренеров видны сразу. Фиксирует тот, кто закрывает разбор." : "После отправки правки доступны только админу.")}</span>
       </div>
     </div>` : "";
 
   const notes = [];
   if (!isBlind){
     ["hr","rop"].forEach(k => { if (stageDone(c, k) && c.st[k].note) notes.push([ROLES[k].full, c.st[k].at, c.st[k].note]); });
-    TRAINERS.forEach(t => { const ev = c.st.bu.evals[t]; if (ev.status === "submitted" && ev.note) notes.push([`${ROLES.bu.full}, ${ev.by}`, ev.at, ev.note]); });
-  } else if (myEval(c) && myEval(c).note) notes.push(["Ваш черновик", "не отправлено", myEval(c).note]);
+    if (stageDone(c, "bu") && c.st.bu.note) notes.push([`Тренеры БУ — ${c.st.bu.by}`, c.st.bu.at, c.st.bu.note]);
+  }
 
   return `
   <div class="crumbs no-print"><button class="btn btn-ghost btn-sm" data-act="nav" data-v="list">← К списку</button></div>
@@ -843,7 +813,7 @@ function viewCand(c){
       <div class="meta small muted">
         <span>HR: ${stageDone(c,"hr") ? esc(c.st.hr.by) : "—"}</span>
         <span>РОП: ${stageDone(c,"rop") ? esc(c.st.rop.by) : (closed ? "отказ" : "—")}</span>
-        <span>БУ: ${TRAINERS.filter(t => c.st.bu.evals[t].status === "submitted").length}/2 тренера</span>
+        <span>БУ: ${stageDone(c,"bu") ? esc(c.st.bu.by) : (buAuthors(c).length ? "черновик — " + esc(buAuthors(c).join(", ")) : "—")}</span>
         ${c.emp.stream ? `<span>${esc(c.emp.stream)}</span>` : ""}
         ${c.emp.mentor ? `<span>Наставник: ${esc(c.emp.mentor)}</span>` : ""}
       </div>
@@ -858,7 +828,9 @@ function viewCand(c){
   <div class="stepper">${stepper}</div>
   ${closed ? `<div class="banner no-print" style="margin-bottom:14px; border-color:color-mix(in srgb,var(--bad) 45%,transparent)">
       <b>Отказ на сверке.</b> ${esc(c.rejected.by)}, ${esc(c.rejected.at)}: «${esc(c.rejected.comment)}» — на БУ кандидат не выводится, оффер не делается.</div>` : ""}
-  ${isBlind ? `<div class="banner no-print" style="margin-bottom:14px">Слепая оценка: колонки HR, РОПа и второго тренера закрыты, пока вы не внесёте свою. Так сверка остаётся честной.</div>` : ""}
+  ${isBlind ? `<div class="banner no-print" style="margin-bottom:14px">Оценка БУ — общая: вы с коллегой ведёте один лист, правки видны обоим сразу.
+      Колонки HR и РОПа закрыты, пока оценка не зафиксирована, чтобы совещание не подстраивалось под чужие баллы.
+      ${buAuthors(c).length ? `Над черновиком уже работали: ${esc(buAuthors(c).join(", "))}.` : ""}</div>` : ""}
   <div class="layout">
     <div style="display:grid; gap:18px">
       ${empCard(c)}
@@ -869,7 +841,7 @@ function viewCand(c){
         </div>
         <div class="tablewrap">
           <table class="matrix">
-            <thead><tr><th>Компетенция</th><th>HR</th><th>РОП</th><th>БУ · 2 тренера</th><th>Δ</th></tr></thead>
+            <thead><tr><th>Компетенция</th><th>HR</th><th>РОП</th><th>БУ · совместно</th><th>Δ</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>
@@ -881,7 +853,7 @@ function viewCand(c){
     </div>
     <aside class="rail no-print">
       ${railScores(c, s, isBlind, closed)}
-      ${railVerdict(c, rec, g, tg, stops, isBlind, closed)}
+      ${railVerdict(c, rec, g, stops, isBlind, closed)}
       ${railDecision(c, rec, closed)}
     </aside>
   </div>`;
@@ -910,24 +882,21 @@ function railScores(c, s, isBlind, closed){
     ${closed ? "" : bar("Итог", s.total)}
     <div>
       <div class="kv"><span class="k">Оценено компетенций</span><span class="v">${filled} / ${ALL.length}</span></div>
-      ${closed ? "" : `<div class="kv"><span class="k">Расхождений отбор ↔ БУ</span><span class="v">${gaps(c).length}</span></div>
-      <div class="kv"><span class="k">Разошлись тренеры</span><span class="v">${trainerGaps(c).length}</span></div>`}
+      ${closed ? "" : `<div class="kv"><span class="k">Расхождений отбор ↔ БУ</span><span class="v">${gaps(c).length}</span></div>`}
       <div class="kv"><span class="k">Стоп-факторов</span><span class="v">${stopFlags(c).length}</span></div>
     </div>
   </div></section>`;
 }
-function railVerdict(c, rec, g, tg, stops, isBlind, closed){
+function railVerdict(c, rec, g, stops, isBlind, closed){
   if (isBlind || closed) return "";
   return `<section class="card"><div class="card-b" style="display:grid; gap:12px">
     <span class="eyebrow">Что говорит матрица</span>
     <div class="verdict ${rec.tone}"><h3>${esc(rec.title)}</h3><p class="small">${esc(rec.text)}</p></div>
-    ${(stops.length || g.length || tg.length) ? `<div class="flags">
+    ${(stops.length || g.length) ? `<div class="flags">
       ${stops.map(f => `<div class="flagline crit"><span><b>Стоп-фактор:</b> ${esc(f.n)} — минимум ${Math.min(...f.vals)}.</span></div>`).join("")}
       ${g.length ? `<span class="eyebrow">Расхождения отбора и БУ</span>` : ""}
       ${g.map(f => `<div class="flagline"><span><b>${esc(f.n)}</b> — отбор ${fmt(f.hire)}, БУ ${fmt(f.bu)}</span></div>`).join("")}
-      ${tg.length ? `<span class="eyebrow">Тренеры разошлись</span>` : ""}
-      ${tg.map(f => `<div class="flagline"><span><b>${esc(f.n)}</b> — ${TRAINERS.map((t,idx) => `${TRAINER_NAME[t].short} ${f.vals[idx]}`).join(" · ")}</span></div>`).join("")}
-      ${(g.length || tg.length) ? `<p class="small muted">Разрыв в 2 балла — повод свести оценщиков и понять, что именно видел каждый.</p>` : ""}
+      ${g.length ? `<p class="small muted">Разрыв в 2 балла — повод свести оценщиков и понять, что именно видел каждый.</p>` : ""}
     </div>` : `<p class="small muted">Расхождений между оценщиками нет.</p>`}
   </div></section>`;
 }
@@ -953,7 +922,7 @@ function railDecision(c, rec, closed){
   }
   if (st !== "fin") return `<section class="card"><div class="card-b">
     <span class="eyebrow">Решение по итогам БУ</span>
-    <p class="small muted" style="margin-top:6px">Откроется, когда оба тренера внесут оценки. Сейчас ждём: ${STAGES.find(x => x.k === st).who.map(r => ROLES[r].full).join(" или ")}.</p></div></section>`;
+    <p class="small muted" style="margin-top:6px">Откроется, когда тренеры зафиксируют оценку БУ. Сейчас ждём: ${STAGES.find(x => x.k === st).who.map(r => ROLES[r].full).join(" или ")}.</p></div></section>`;
   if (!canDecide) return `<section class="card"><div class="card-b">
     <span class="eyebrow">Решение по итогам БУ</span><p class="small muted" style="margin-top:6px">Все оценки собраны. Решение принимает РОП.</p></div></section>`;
   const pre = rec.key === "out" ? "out" : rec.key === "watch" ? "watch" : "ipr";
@@ -1076,7 +1045,7 @@ function viewMatrix(){
       b.items.map(i => `<tr>
         <td><div class="comp-name">${esc(i.n)} ${i.crit ? '<span class="tag crit">стоп-фактор</span>' : ""}</div><div class="comp-hint">${esc(i.hint)}</div></td>
         <td class="mono">${i.w}</td>
-        <td class="small">${[i.by.includes("hr") ? "HR · РОП" : "", i.by.includes("bu") ? "БУ (2 тренера)" : ""].filter(Boolean).join(" · ")}</td>
+        <td class="small">${[i.by.includes("hr") ? "HR · РОП" : "", i.by.includes("bu") ? "БУ (совместно)" : ""].filter(Boolean).join(" · ")}</td>
         <td class="small" style="max-width:34ch">${esc(i.dev)}</td>
       </tr>`).join("")).join("")}</tbody>
   </table></div></section>`;
@@ -1091,14 +1060,14 @@ function viewAbout(){
         <li><b>Первичное интервью.</b> HR оценивает компетенции, видимые в разговоре.</li>
         <li><b>Сверка с РОПом.</b> Каждая строка либо подтверждается, либо перебивается своей оценкой с комментарием. Здесь же <b>отказ</b>: если РОП завернул, оффера и БУ не будет — карточка закрывается с обоснованием.</li>
         <li><b>Выход.</b> HR фиксирует дату выхода, поток БУ, даты программы и наставника. От <b>окончания БУ</b> дальше считаются сроки ИПР и контрольный срез.</li>
-        <li><b>Биржевой университет.</b> Офлайн-интенсив. Оценивают <b>два тренера, независимо и вслепую</b>: до отправки своей оценки не видно ни колонок отбора, ни оценки коллеги. Расхождение тренеров между собой — отдельный флаг.</li>
+        <li><b>Биржевой университет.</b> Офлайн-интенсив. Два тренера совещаются и ведут <b>один общий лист</b>: правки видны обоим, фиксирует тот, кто закрывает разбор, авторство сохраняется за обоими. До фиксации колонки HR и РОПа закрыты — чтобы совещание не подстраивалось под баллы отбора.</li>
         <li><b>Решение по итогам БУ.</b> Матрица считает баллы, показывает расхождения и стоп-факторы, предлагает вердикт. РОП фиксирует своё с обоснованием; из просадок собирается ИПР.</li>
         <li><b>Контрольный срез.</b> Через 30 дней после БУ — посттренинговое сопровождение: те же компетенции переоцениваются, видно рост по каждой, итог — ИПР выполнен, продлеваем или расстаёмся.</li>
       </ol>
     </div></section>
     <section class="card"><div class="card-b" style="display:grid; gap:10px">
       <h2>Как считается балл</h2>
-      <p class="small">По каждой шкале: <span class="mono">Σ(оценка × вес) / Σ(3 × вес)</span>. Отдельно «отбор» (оценка HR с правками РОПа) и «БУ» (среднее двух тренеров), итог — среднее из заполненных. Пороги: ≥ 75% — сильный старт, 55–74% — оставляем с ИПР, 40–54% — пограничная зона, ниже 40% — перспектив нет. Стоп-фактор с оценкой 0–1 <b>у любого</b> оценщика перекрывает балл.</p>
+      <p class="small">По каждой шкале: <span class="mono">Σ(оценка × вес) / Σ(3 × вес)</span>. Отдельно «отбор» (оценка HR с правками РОПа) и «БУ» (совместная оценка тренеров), итог — среднее из заполненных. Пороги: ≥ 75% — сильный старт, 55–74% — оставляем с ИПР, 40–54% — пограничная зона, ниже 40% — перспектив нет. Стоп-фактор с оценкой 0–1 <b>у любого</b> оценщика перекрывает балл.</p>
     </div></section>
     <section class="card"><div class="card-b" style="display:grid; gap:10px">
       <h2>Что здесь условно</h2>
@@ -1106,7 +1075,7 @@ function viewAbout(){
         <li>Шкала 0–3, веса 1–3 и пороги вердикта — рабочая гипотеза, настраиваются в справочнике.</li>
         <li>Стоп-фактор пока один — «Честность и надёжность».</li>
         <li>Оценка на БУ одна, по итогам программы; промежуточных срезов по неделям интенсива нет.</li>
-        <li>Тренеров ровно двое, оба обязательны; оценка на БУ считается их средним.</li>
+        <li>Оценка БУ одна на двоих: система не требует подтверждения вторым тренером — фиксирует тот, кто закрывает разбор.</li>
         <li>Контрольный срез назначает РОП после решения, переоцениваются только компетенции из ИПР.</li>
         <li>Данные лежат в браузере (localStorage), общего сервера нет: чтобы пройти все роли, выходите и заходите под разными доступами в одном браузере. Реальные персданные вносить нельзя.</li>
       </ul>
@@ -1118,7 +1087,7 @@ function viewAbout(){
   </div><aside class="rail">
     <section class="card"><div class="card-b" style="display:grid; gap:8px">
       <span class="eyebrow">Роли и доступы</span>
-      ${USERS.map(u => `<div class="kv"><span class="k">${esc(u.role === "bu" ? ROLES.bu.full + ", " + TRAINER_NAME[u.login].short : ROLES[u.role].full)}</span><span class="v small">${esc(u.login)} / ${esc(u.pass)}</span></div>`).join("")}
+      ${USERS.map(u => `<div class="kv"><span class="k">${esc(ROLES[u.role].full)}<br><span class="small muted">${esc(u.name)}</span></span><span class="v small">${esc(u.login)} / ${esc(u.pass)}</span></div>`).join("")}
     </div></section>
   </aside></div>`;
 }
@@ -1127,11 +1096,11 @@ function viewAbout(){
    11. ДЕЙСТВИЯ
    ============================================================ */
 function missingCount(c, key){
-  if (key === "bu") return ALL.filter(i => i.by.includes("bu") && myEval(c).sc[i.id] === undefined).length;
-  return ALL.filter(i => i.by.includes("hr") && c.st.hr.sc[i.id] === undefined).length;
+  const role = key === "bu" ? "bu" : "hr";
+  return ALL.filter(i => i.by.includes(role) && c.st[key].sc[i.id] === undefined).length;
 }
 function summaryText(c){
-  const s = scores(c), rec = recommend(c), g = gaps(c), tg = trainerGaps(c);
+  const s = scores(c), rec = recommend(c), g = gaps(c);
   const L = [];
   L.push(`${c.name} — ${c.pos} (${c.src})`);
   if (c.rejected.status === "yes"){
@@ -1143,11 +1112,10 @@ function summaryText(c){
   L.push(`Рекомендация матрицы: ${rec.title}`);
   if (c.decision.status === "final") L.push(`Решение РОПа: ${VERDICTS[c.decision.verdict].t} — ${c.decision.comment}`);
   if (g.length){ L.push("", "Расхождения отбор ↔ БУ:"); g.forEach(x => L.push(`  ${x.n}: отбор ${fmt(x.hire)}, БУ ${fmt(x.bu)}`)); }
-  if (tg.length){ L.push("", "Разошлись тренеры:"); tg.forEach(x => L.push(`  ${x.n}: ${TRAINERS.map((t,i) => TRAINER_NAME[t].short + " " + x.vals[i]).join(", ")}`)); }
   const w = weakItems(c);
   if (w.length){ L.push("", "Просадки:"); w.forEach(x => L.push(`  ${x.n} — ${x.min} (вес ${x.w})`)); }
   ["hr","rop"].forEach(k => { if (c.st[k].note) L.push("", `${ROLES[k].full}: ${c.st[k].note}`); });
-  TRAINERS.forEach(t => { const ev = c.st.bu.evals[t]; if (ev.note) L.push("", `БУ, ${ev.by}: ${ev.note}`); });
+  if (c.st.bu.note) L.push("", `Тренеры БУ (${c.st.bu.by || buAuthors(c).join(", ")}): ${c.st.bu.note}`);
   if (c.ipr.items.length){
     L.push("", `ИПР (контрольный срез ${c.ipr.checkpoint || "—"}):`);
     c.ipr.items.forEach((it,i) => L.push(`  ${i+1}. ${BY_ID[it.id] ? BY_ID[it.id].n : it.id} — ${it.action} · до ${it.due}${it.metric ? " · критерий: " + it.metric : ""}`));
@@ -1192,8 +1160,9 @@ document.addEventListener("click", e => {
   }
   else if (act === "score" && c){
     const role = el.dataset.role, id = el.dataset.id, val = Number(el.dataset.value);
-    const bag = role === "bu" ? myEval(c).sc : role === "review" ? c.review.sc : c.st[role].sc;
+    const bag = role === "review" ? c.review.sc : c.st[role].sc;
     if (bag[id] === val && role !== "rop") delete bag[id]; else bag[id] = val;
+    if (role === "bu") markAuthor(c);
     save(); render();
   }
   else if (act === "submitStage" && c){
@@ -1201,10 +1170,10 @@ document.addEventListener("click", e => {
     const miss = ed === "rop" ? 0 : missingCount(c, ed);
     if (miss){ toast(`Не оценено компетенций: ${miss}`); return; }
     if (ed === "bu"){
-      const ev = myEval(c);
-      ev.status = "submitted"; ev.by = SESSION.name; ev.at = today();
-      save(); render();
-      toast(stageDone(c, "bu") ? "Оба тренера внесли оценки — карточка ушла РОПу" : "Оценка внесена, ждём второго тренера");
+      markAuthor(c);
+      c.st.bu.status = "submitted"; c.st.bu.at = today();
+      c.st.bu.by = buAuthors(c).join(" и ");
+      save(); render(); toast("Оценка БУ зафиксирована, карточка ушла РОПу");
       return;
     }
     c.st[ed].status = "submitted"; c.st[ed].by = SESSION.name; c.st[ed].at = today();
@@ -1259,7 +1228,7 @@ document.addEventListener("click", e => {
     if (c.rejected.status === "yes"){ c.rejected = {status:"no", comment:"", by:"", at:""}; }
     else if (c.review.status === "done"){ c.review.status = "open"; c.review.verdict = ""; c.review.comment = ""; }
     else if (c.decision.status === "final"){ c.decision = {status:"pending", verdict:"", comment:"", by:"", at:""}; }
-    else if (stageDone(c, "bu")){ TRAINERS.forEach(t => { c.st.bu.evals[t].status = "pending"; }); }
+    else if (stageDone(c, "bu")){ c.st.bu.status = "pending"; }
     else if (stageDone(c, "out")){ c.st.out = {status:"pending", by:"", at:""}; }
     else if (stageDone(c, "rop")){ c.st.rop.status = "pending"; }
     else if (stageDone(c, "hr")){ c.st.hr.status = "pending"; }
@@ -1276,13 +1245,14 @@ document.addEventListener("change", e => {
   const c = ROUTE.id ? cand(ROUTE.id) : null;
   if (!c) return;
   const act = el.dataset.act, ed = editorStage(c);
-  const rec = ed === "bu" ? myEval(c) : (ed ? c.st[ed] : null);
+  const rec = ed ? c.st[ed] : null;
   if (act === "cmt" && rec){
     const t = el.value.trim();
     if (t) rec.cmt[el.dataset.id] = t; else delete rec.cmt[el.dataset.id];
+    if (ed === "bu") markAuthor(c);
     save();
   }
-  else if (act === "note" && rec){ rec.note = el.value; save(); }
+  else if (act === "note" && rec){ rec.note = el.value; if (ed === "bu") markAuthor(c); save(); }
   else if (act === "empField"){ c.emp[el.dataset.f] = el.value; save(); }
   else if (act === "iprGoal"){ c.ipr.goal = el.value; save(); }
   else if (act === "iprChk"){ c.ipr.checkpoint = el.value; save(); }
