@@ -1,0 +1,38 @@
+[
+  {
+    "slug": "demo-debit-1",
+    "demo": true,
+    "bank": "Демо Банк 1",
+    "name": "Демо дебетовая 1",
+    "legalName": "АО «Демо Банк 1»",
+    "license": "0000",
+    "cashback": "до 5% в категориях, 1% на всё",
+    "balanceRate": "до 16% годовых на остаток",
+    "fee": "0 ₽",
+    "feeFree": true,
+    "features": ["Бесплатные переводы по СБП", "Снятие в любых банкоматах до 100 000 ₽"],
+    "rating": 4.6,
+    "url": "https://example-cpa.ru/click?offer=201",
+    "subidParam": "sub1",
+    "erid": "DEMO0000000201",
+    "advertiser": "АО «Демо Банк 1», ИНН 0000000000"
+  },
+  {
+    "slug": "demo-debit-2",
+    "demo": true,
+    "bank": "Демо Банк 2",
+    "name": "Демо дебетовая 2",
+    "legalName": "ПАО «Демо Банк 2»",
+    "license": "0000",
+    "cashback": "до 10% у партнёров",
+    "balanceRate": "нет",
+    "fee": "0–199 ₽ в месяц",
+    "feeFree": false,
+    "features": ["Бесплатно при остатке от 30 000 ₽"],
+    "rating": 4.2,
+    "url": "https://example-cpa.ru/click?offer=202",
+    "subidParam": "sub1",
+    "erid": "DEMO0000000202",
+    "advertiser": "ПАО «Демо Банк 2», ИНН 0000000000"
+  }
+]

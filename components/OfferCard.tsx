@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { type Offer, offerHref, rub, pct, days } from "@/lib/offers";
 import { OfferLink } from "./OfferLink";
+import { RiskWarning } from "./BankCards";
 
 /**
  * Карточка оффера. Обязательные элементы рекламы займа:
@@ -35,6 +36,7 @@ export function OfferCard({ offer, placement }: { offer: Offer; placement: strin
       <p className="offer__legal">
         {offer.legalName}, рег. номер в реестре МФО Банка России {offer.cbrRegistry}
       </p>
+      <RiskWarning />
     </article>
   );
 }

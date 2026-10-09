@@ -43,6 +43,20 @@
 | todo | zaym-pensioneram | займы для пенсионеров |
 | todo | zaym-bez-otkaza-pravda | «займ без отказа» — бывает ли так на самом деле |
 
+## Кластер 5. Банковские продукты (выплаты выше, регуляторный риск ниже)
+
+| Статус | Slug | Тема / главный запрос |
+|---|---|---|
+| review | kreditka-vmesto-zayma | кредитная карта или микрозайм — что выгоднее |
+| todo | kak-rabotaet-lgotnyy-period | как работает льготный период по кредитной карте |
+| todo | snyatie-nalichnyh-s-kreditki | снятие наличных с кредитной карты: комиссии и проценты |
+| todo | minimalnyy-platezh-kreditka | минимальный платёж по кредитке: что будет, если пропустить |
+| todo | kreditka-s-plokhoy-ki | кредитная карта с плохой кредитной историей |
+| todo | refinansirovanie-zaymov | рефинансирование микрозаймов и кредитов |
+| todo | debetovaya-karta-s-protsentom-na-ostatok | дебетовая карта с процентом на остаток |
+| todo | keshbek-karty-kak-vybrat | как выбрать карту с кэшбэком под свои траты |
+| todo | debetovaya-karta-dlya-shkolnika | детская и подростковая карта |
+
 ## Кластер 4. Инструменты
 
 | Статус | URL | Что |
@@ -50,6 +64,7 @@
 | done | /kalkulyator/ | калькулятор переплаты |
 | todo | /kalkulyator-psk/ | калькулятор ПСК по графику платежей |
 | todo | /predelnye-znacheniya-psk/ | таблица предельных ПСК ЦБ по кварталам |
+| todo | /kalkulyator-lgotnogo-perioda/ | калькулятор льготного периода кредитки |
 
 ## Обновления
 

@@ -9,7 +9,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: { default: `${site.name} — ${site.tagline}`, template: `%s — ${site.name}` },
-  description: "Независимые статьи о микрозаймах: как выбрать МФО, посчитать переплату и не попасть в долговую яму.",
+  description: "Независимые статьи о займах и банковских картах: как выбрать МФО или кредитку, посчитать переплату и не попасть в долговую яму.",
   openGraph: { siteName: site.name, locale: "ru_RU", type: "website" },
   alternates: { canonical: "./" },
 };

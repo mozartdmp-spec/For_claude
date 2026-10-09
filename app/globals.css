@@ -112,3 +112,12 @@ code { background: #0001; padding: 0 4px; border-radius: 4px; }
 .calc__result div { display: flex; justify-content: space-between; gap: 12px; }
 .calc__total { font-size: 1.2rem; border-top: 1px solid var(--border); padding-top: 8px; }
 .warn { background: var(--warn-bg); color: var(--warn); padding: 8px 12px; border-radius: 8px; margin: 0; font-size: 0.9rem; }
+
+/* «Оценивайте свои финансовые возможности и риски» — обязательна в рекламе кредитов и займов.
+   Требование к размеру (не менее 7% площади рекламы) — сверить с юристом. */
+.risk-warning { background: var(--warn-bg); color: var(--warn); font-weight: 700; text-align: center; padding: 8px 12px; border-radius: 8px; margin: 0; font-size: 0.95rem; }
+.categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 24px; }
+.category { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-decoration: none; color: var(--text); display: grid; gap: 4px; }
+.category b { font-size: 1.1rem; }
+.category span { color: var(--muted); font-size: 0.9rem; }
+.category:hover { border-color: var(--accent); color: var(--text); }

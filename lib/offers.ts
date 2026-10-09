@@ -45,7 +45,7 @@ export function getOffer(slug: string) {
 }
 
 /** Партнёрская ссылка с subid = место размещения, чтобы видеть в CPA-сети, какая страница продаёт. */
-export function offerHref(offer: Offer, placement: string) {
+export function offerHref(offer: { url: string; subidParam?: string }, placement: string) {
   if (!offer.subidParam) return offer.url;
   const u = new URL(offer.url);
   u.searchParams.set(offer.subidParam, placement.slice(0, 64));

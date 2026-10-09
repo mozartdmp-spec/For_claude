@@ -15,7 +15,7 @@ const BANNED = [
 
 const files = fs.readdirSync(articlesDir).filter((f) => f.endsWith(".md"));
 const slugs = new Set(files.map((f) => f.replace(/\.md$/, "")));
-const pages = new Set(["/", "/zaimy/", "/stati/", "/kalkulyator/", "/o-proekte/", "/reklama/", "/politika-konfidencialnosti/"]);
+const pages = new Set(["/", "/zaimy/", "/kreditnye-karty/", "/debetovye-karty/", "/stati/", "/kalkulyator/", "/o-proekte/", "/reklama/", "/politika-konfidencialnosti/"]);
 
 for (const f of files) {
   const slug = f.replace(/\.md$/, "");
@@ -52,6 +52,15 @@ for (const o of offers) {
   if (o.rateMaxPerDay > 0.8) errors.push(`${at}: ставка выше 0,8% в день`);
   if (o.pskMax > 292) errors.push(`${at}: ПСК выше 292%`);
   if (o.demo) warnings.push(`${at}: демо-оффер — замените перед запуском`);
+}
+
+for (const [file, extra] of [["credit-cards.json", ["pskMax"]], ["debit-cards.json", []]]) {
+  const cards = JSON.parse(fs.readFileSync(path.join(root, "data", file), "utf8"));
+  for (const c of cards) {
+    const at = `data/${file} [${c.slug}]`;
+    for (const k of ["legalName", "license", "erid", "advertiser", "url", ...extra]) if (c[k] == null || c[k] === "") errors.push(`${at}: нет поля ${k}`);
+    if (c.demo) warnings.push(`${at}: демо-оффер — замените перед запуском`);
+  }
 }
 
 for (const w of warnings) console.warn("⚠ " + w);
