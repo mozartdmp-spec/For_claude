@@ -1,0 +1,123 @@
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --text: #1a1d23;
+  --muted: #667085;
+  --border: #e4e7ec;
+  --accent: #0b6e4f;
+  --accent-hover: #095c42;
+  --accent-soft: #e6f4ef;
+  --warn-bg: #fff6e5;
+  --warn: #8a5300;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+a { color: var(--accent); }
+a:hover { color: var(--accent-hover); }
+h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); line-height: 1.2; margin: 0.5em 0; }
+h2 { font-size: 1.4rem; margin-top: 2em; }
+code { background: #0001; padding: 0 4px; border-radius: 4px; }
+
+.container { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+.main { min-height: 60vh; padding-bottom: 48px; }
+.muted { color: var(--muted); font-size: 0.9rem; }
+
+.demo-banner { background: #b42318; color: #fff; text-align: center; padding: 8px 16px; font-size: 0.9rem; }
+.demo-banner code { background: #fff3; }
+
+.header { background: var(--surface); border-bottom: 1px solid var(--border); }
+.header__inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 60px; flex-wrap: wrap; }
+.logo { font-weight: 800; font-size: 1.25rem; color: var(--text); text-decoration: none; }
+.nav { display: flex; gap: 20px; flex-wrap: wrap; }
+.nav a { color: var(--text); text-decoration: none; }
+.nav a:hover { color: var(--accent); }
+
+.footer { background: var(--surface); border-top: 1px solid var(--border); padding: 32px 0; font-size: 0.9rem; color: var(--muted); }
+.footer__warn { background: var(--warn-bg); color: var(--warn); padding: 12px 16px; border-radius: var(--radius); }
+.footer__links { display: flex; gap: 20px; flex-wrap: wrap; }
+
+.hero { padding: 40px 0 8px; }
+.hero p { font-size: 1.15rem; max-width: 640px; color: var(--muted); }
+.hero__actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+
+.btn {
+  display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
+  padding: 12px 20px; border-radius: 10px; font-weight: 600; text-align: center; border: 2px solid var(--accent);
+}
+.btn:hover { background: var(--accent-hover); color: #fff; }
+.btn--ghost { background: transparent; color: var(--accent); }
+.btn--ghost:hover { background: var(--accent-soft); color: var(--accent); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+
+.offer {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; display: flex; flex-direction: column; gap: 10px; height: 100%;
+}
+.offer__ad { font-size: 0.72rem; color: var(--muted); }
+.offer__head { display: flex; justify-content: space-between; align-items: center; }
+.offer__brand { margin: 0; font-size: 1.2rem; }
+.offer__brand a { color: var(--text); text-decoration: none; }
+.offer__rating { font-weight: 700; color: #b54708; }
+.offer__terms { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; }
+.offer__terms dt { font-size: 0.8rem; color: var(--muted); }
+/* ПСК отображается тем же кеглем, что и ставка — требование ст. 28 38-ФЗ */
+.offer__terms dd { margin: 0; font-weight: 600; font-size: 0.95rem; }
+.offer__features { margin: 0; padding-left: 18px; font-size: 0.9rem; flex: 1; }
+.offer__legal { font-size: 0.75rem; color: var(--muted); margin: 0; }
+.badge { align-self: flex-start; background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 0.85rem; padding: 2px 10px; border-radius: 99px; }
+
+.filter {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; align-items: end;
+}
+.filter label { display: flex; flex-direction: column; gap: 6px; }
+.filter input[type="range"] { width: 100%; accent-color: var(--accent); }
+.filter__check { flex-direction: row !important; align-items: center; }
+
+.article-list { list-style: none; padding: 0; display: grid; gap: 16px; }
+.article-list li { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.article-list a { font-weight: 700; font-size: 1.1rem; }
+.article-list p { margin: 6px 0; }
+
+.article { max-width: 760px; }
+.article__meta { color: var(--muted); font-size: 0.9rem; }
+.toc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; margin: 20px 0; }
+.toc ol { margin: 8px 0 0; padding-left: 20px; }
+.prose { max-width: 760px; }
+.prose table, .table { border-collapse: collapse; width: 100%; background: var(--surface); display: block; overflow-x: auto; }
+.prose th, .prose td, .table th, .table td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+.table th { width: 40%; color: var(--muted); font-weight: 500; }
+.prose blockquote { margin: 16px 0; padding: 12px 16px; background: var(--warn-bg); border-left: 4px solid var(--warn); border-radius: 0 var(--radius) var(--radius) 0; }
+.prose blockquote p { margin: 0; }
+.faq details { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 8px; }
+.faq summary { font-weight: 600; cursor: pointer; }
+
+.two-col { display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+@media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+
+.calc { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 720px) { .calc { grid-template-columns: 1fr; } }
+.calc__inputs, .calc__result { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: grid; gap: 12px; align-content: start; }
+.calc__inputs label { display: grid; gap: 4px; font-size: 0.9rem; }
+.calc__inputs input { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; }
+.calc__result div { display: flex; justify-content: space-between; gap: 12px; }
+.calc__total { font-size: 1.2rem; border-top: 1px solid var(--border); padding-top: 8px; }
+.warn { background: var(--warn-bg); color: var(--warn); padding: 8px 12px; border-radius: 8px; margin: 0; font-size: 0.9rem; }
+
+/* «Оценивайте свои финансовые возможности и риски» — обязательна в рекламе кредитов и займов.
+   Требование к размеру (не менее 7% площади рекламы) — сверить с юристом. */
+.risk-warning { background: var(--warn-bg); color: var(--warn); font-weight: 700; text-align: center; padding: 8px 12px; border-radius: 8px; margin: 0; font-size: 0.95rem; }
+.categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 24px; }
+.category { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-decoration: none; color: var(--text); display: grid; gap: 4px; }
+.category b { font-size: 1.1rem; }
+.category span { color: var(--muted); font-size: 0.9rem; }
+.category:hover { border-color: var(--accent); color: var(--text); }
