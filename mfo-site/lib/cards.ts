@@ -1,5 +1,6 @@
 import creditRaw from "@/data/credit-cards.json";
 import debitRaw from "@/data/debit-cards.json";
+import { showDemo } from "@/lib/offers";
 
 type BankOffer = {
   slug: string;
@@ -38,9 +39,9 @@ export type DebitCard = BankOffer & {
   balanceRate: string;
 };
 
-const byRating = <T extends { rating: number }>(xs: T[]) => xs.toSorted((a, b) => b.rating - a.rating);
+const byRating = <T extends { rating: number; demo?: boolean }>(xs: T[]) =>
+  xs.filter((x) => showDemo || !x.demo).toSorted((a, b) => b.rating - a.rating);
 
 export const creditCards: CreditCard[] = byRating(creditRaw as CreditCard[]);
 export const debitCards: DebitCard[] = byRating(debitRaw as DebitCard[]);
 
-export const hasDemoCards = [...creditCards, ...debitCards].some((c) => c.demo);

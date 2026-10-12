@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { offers } from "@/lib/offers";
 import { OfferCard } from "@/components/OfferCard";
 import { Showcase } from "@/components/Showcase";
+import { OffersSoon } from "@/components/OffersSoon";
 
 export const metadata: Metadata = {
   title: "Подбор микрозайма: сравнение условий МФО",
@@ -18,7 +19,7 @@ export default function Zaimy() {
         определяется оценкой редакции (<a href="/o-proekte/#metodika">методика</a>). Перед
         оформлением прочитайте индивидуальные условия договора на сайте МФО.
       </p>
-      <Showcase offers={offers} cards={cards} />
+      {offers.length ? <Showcase offers={offers} cards={cards} /> : <OffersSoon what="займов" />}
     </>
   );
 }

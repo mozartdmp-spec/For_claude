@@ -3,6 +3,7 @@ import Link from "next/link";
 import { creditCards } from "@/lib/cards";
 import { CreditCardCard, RiskWarning } from "@/components/BankCards";
 import { CreditCardShowcase } from "@/components/CreditCardShowcase";
+import { OffersSoon } from "@/components/OffersSoon";
 
 export const metadata: Metadata = {
   title: "Кредитные карты с льготным периодом: сравнение условий",
@@ -23,7 +24,7 @@ export default function KreditnyeKarty() {
         <Link href="/stati/kreditka-vmesto-zayma/">«Кредитка вместо займа»</Link>.
       </p>
       <RiskWarning />
-      <CreditCardShowcase cards={creditCards} rendered={rendered} />
+      {creditCards.length ? <CreditCardShowcase cards={creditCards} rendered={rendered} /> : <OffersSoon what="кредитных карт" />}
     </>
   );
 }

@@ -6,7 +6,8 @@ name: Deploy finoved.ru
 #   FTP_DIR      — папка сайта на хостинге, по умолчанию www/finoved.ru/
 #   FTP_PROTOCOL — ftps (по умолчанию) или ftp, если хостинг не поддерживает TLS
 #   YM_ID        — номер счётчика Яндекс Метрики
-#   NOINDEX      — 1 закрывает сайт от индексации; поставьте 0, когда демо-офферы заменены
+#   NOINDEX      — 1 временно закрывает сайт от индексации (по умолчанию открыт;
+#                  демо-офферы на рабочий сайт не попадают)
 
 on:
   push:
@@ -26,6 +27,8 @@ jobs:
         working-directory: mfo-site
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # для IndexNow: какие страницы изменились с прошлого деплоя
 
       - uses: actions/setup-node@v4
         with:
@@ -42,7 +45,7 @@ jobs:
         env:
           NEXT_PUBLIC_SITE_URL: https://finoved.ru
           NEXT_PUBLIC_YM_ID: ${{ vars.YM_ID }}
-          NEXT_PUBLIC_NOINDEX: ${{ vars.NOINDEX || '1' }}
+          NEXT_PUBLIC_NOINDEX: ${{ vars.NOINDEX || '0' }}
 
       - name: Upload to reg.ru
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -53,3 +56,8 @@ jobs:
           protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
           local-dir: mfo-site/out/
           server-dir: ${{ vars.FTP_DIR || 'www/finoved.ru/' }}
+
+      - name: Notify Yandex (IndexNow)
+        if: ${{ vars.NOINDEX != '1' }}
+        continue-on-error: true
+        run: node scripts/indexnow.mjs ${{ github.event_name == 'workflow_dispatch' && '--all' || format('--since {0}', github.event.before) }}

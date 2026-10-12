@@ -36,9 +36,13 @@ export type Offer = {
   advertiser: string;
 };
 
-export const offers: Offer[] = (raw as Offer[]).toSorted((a, b) => b.rating - a.rating);
+/** Демо-офферы видны только при разработке или с NEXT_PUBLIC_SHOW_DEMO=1 — на рабочий сайт не попадают. */
+export const showDemo = process.env.NEXT_PUBLIC_SHOW_DEMO === "1" || process.env.NODE_ENV === "development";
 
-export const hasDemoOffers = offers.some((o) => o.demo);
+export const offers: Offer[] = (raw as Offer[])
+  .filter((o) => showDemo || !o.demo)
+  .toSorted((a, b) => b.rating - a.rating);
+
 
 export function getOffer(slug: string) {
   return offers.find((o) => o.slug === slug);

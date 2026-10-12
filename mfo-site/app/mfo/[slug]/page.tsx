@@ -3,14 +3,20 @@ import { notFound } from "next/navigation";
 import { offers, getOffer, rub, pct, days } from "@/lib/offers";
 import { OfferCard } from "@/components/OfferCard";
 import { JsonLd } from "@/components/JsonLd";
+import { OffersSoon } from "@/components/OffersSoon";
 
 export const dynamicParams = false;
-export const generateStaticParams = () => offers.map((o) => ({ slug: o.slug }));
+// Статическая сборка требует хотя бы одну страницу: пока офферов нет, отдаём служебную заглушку.
+const PLACEHOLDER = "skoro";
+export const generateStaticParams = () =>
+  offers.length ? offers.map((o) => ({ slug: o.slug })) : [{ slug: PLACEHOLDER }];
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const o = getOffer((await params).slug);
+  const slug = (await params).slug;
+  if (slug === PLACEHOLDER) return { title: "Обзоры МФО", robots: { index: false } };
+  const o = getOffer(slug);
   if (!o) return {};
   return {
     title: `${o.brand}: условия займа, ставки, отзывы`,
@@ -20,7 +26,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function MfoPage({ params }: Props) {
-  const o = getOffer((await params).slug);
+  const slug = (await params).slug;
+  if (slug === PLACEHOLDER) return <><h1>Обзоры МФО</h1><OffersSoon what="МФО" /></>;
+  const o = getOffer(slug);
   if (!o) notFound();
   return (
     <div className="two-col">

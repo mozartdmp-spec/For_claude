@@ -121,3 +121,5 @@ code { background: #0001; padding: 0 4px; border-radius: 4px; }
 .category b { font-size: 1.1rem; }
 .category span { color: var(--muted); font-size: 0.9rem; }
 .category:hover { border-color: var(--accent); color: var(--text); }
+.offers-soon { background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); padding: 16px 20px; }
+.offers-soon p { margin: 6px 0; }

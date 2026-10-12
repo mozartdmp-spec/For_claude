@@ -56,12 +56,14 @@ export default async function ArticlePage({ params }: Props) {
         </section>
       )}
 
-      <section>
-        <h2>Предложения МФО</h2>
-        <div className="grid">
-          {offers.slice(0, 3).map((o) => <OfferCard key={o.slug} offer={o} placement={`article-${a.slug}`} />)}
-        </div>
-      </section>
+      {offers.length > 0 && (
+        <section>
+          <h2>Предложения МФО</h2>
+          <div className="grid">
+            {offers.slice(0, 3).map((o) => <OfferCard key={o.slug} offer={o} placement={`article-${a.slug}`} />)}
+          </div>
+        </section>
+      )}
 
       <JsonLd data={{
         "@context": "https://schema.org",

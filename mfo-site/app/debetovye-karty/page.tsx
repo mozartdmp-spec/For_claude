@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { debitCards } from "@/lib/cards";
 import { DebitCardCard } from "@/components/BankCards";
+import { OffersSoon } from "@/components/OffersSoon";
 
 export const metadata: Metadata = {
   title: "Дебетовые карты с кэшбэком и процентом на остаток",
@@ -16,9 +17,11 @@ export default function DebetovyeKarty() {
         трат, процент на остаток и условия бесплатного обслуживания. Порядок определяется оценкой
         редакции (<a href="/o-proekte/#metodika">методика</a>).
       </p>
-      <div className="grid">
-        {debitCards.map((c) => <DebitCardCard key={c.slug} card={c} placement="debetovye-karty" />)}
-      </div>
+      {debitCards.length ? (
+        <div className="grid">
+          {debitCards.map((c) => <DebitCardCard key={c.slug} card={c} placement="debetovye-karty" />)}
+        </div>
+      ) : <OffersSoon what="дебетовых карт" />}
     </>
   );
 }

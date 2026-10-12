@@ -4,6 +4,7 @@ import { creditCards } from "@/lib/cards";
 import { getAllArticles, fmtDate } from "@/lib/articles";
 import { OfferCard } from "@/components/OfferCard";
 import { CreditCardCard } from "@/components/BankCards";
+import { OffersSoon } from "@/components/OffersSoon";
 
 export default function Home() {
   const articles = getAllArticles().slice(0, 6);
@@ -38,17 +39,21 @@ export default function Home() {
 
       <section>
         <h2>Микрозаймы</h2>
-        <div className="grid">
-          {offers.slice(0, 3).map((o) => <OfferCard key={o.slug} offer={o} placement="home" />)}
-        </div>
+        {offers.length ? (
+          <div className="grid">
+            {offers.slice(0, 3).map((o) => <OfferCard key={o.slug} offer={o} placement="home" />)}
+          </div>
+        ) : <OffersSoon what="займов" />}
         <p><Link href="/zaimy/">Все займы →</Link></p>
       </section>
 
       <section>
         <h2>Кредитные карты</h2>
-        <div className="grid">
-          {creditCards.slice(0, 3).map((c) => <CreditCardCard key={c.slug} card={c} placement="home" />)}
-        </div>
+        {creditCards.length ? (
+          <div className="grid">
+            {creditCards.slice(0, 3).map((c) => <CreditCardCard key={c.slug} card={c} placement="home" />)}
+          </div>
+        ) : <OffersSoon what="кредитных карт" />}
         <p><Link href="/kreditnye-karty/">Все кредитные карты →</Link></p>
       </section>
 
