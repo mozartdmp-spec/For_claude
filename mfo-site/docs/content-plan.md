@@ -13,23 +13,25 @@
 | review | chto-takoe-psk | что такое ПСК по займу |
 | review | kak-proverit-mfo | как проверить МФО в реестре ЦБ |
 | review | zaym-pod-0 | займ под 0 процентов как работает |
-| todo | samozapret-na-kredity | самозапрет на кредиты и займы через Госуслуги |
-| todo | chem-mfk-otlichaetsya-ot-mkk | МФК и МКК — в чём разница |
-| todo | dopolnitelnye-uslugi-mfo | как отказаться от страховки и допуслуг в МФО |
-| todo | dosrochnoe-pogashenie-zayma | досрочное погашение микрозайма |
+| draft | samozapret-na-kredity | самозапрет на кредиты и займы через Госуслуги |
+| draft | chem-mfk-otlichaetsya-ot-mkk | МФК и МКК — в чём разница |
+| draft | dopolnitelnye-uslugi-mfo | как отказаться от страховки и допуслуг в МФО |
+| draft | dosrochnoe-pogashenie-zayma | досрочное погашение микрозайма |
 | todo | kak-chitat-dogovor-zayma | индивидуальные условия договора займа: что проверить |
 | todo | moshennichestvo-zaym-na-chuzhoe-imya | на меня оформили займ — что делать |
+| draft | zaym-v-18-let | займ в 18 лет |
 
 ## Кластер 2. Проблемы с долгом (высокий трафик, сильная социальная ценность)
 
 | Статус | Slug | Тема / главный запрос |
 |---|---|---|
-| todo | chto-budet-esli-ne-platit-zaym | что будет, если не платить микрозайм |
-| todo | kollektory-mfo-prava | что могут и не могут коллекторы (230-ФЗ) |
+| draft | chto-budet-esli-ne-platit-zaym | что будет, если не платить микрозайм |
+| draft | kollektory-prava-dolzhnika | что могут и не могут коллекторы (230-ФЗ) |
 | todo | restrukturizaciya-zayma | реструктуризация и пролонгация займа |
 | todo | bankrotstvo-cherez-mfc | внесудебное банкротство через МФЦ |
 | todo | kreditnaya-istoriya-posle-mfo | как займы влияют на кредитную историю |
-| todo | kak-uznat-svoi-dolgi-mfo | как узнать все свои займы и долги |
+| draft | kak-uznat-kreditnuyu-istoriyu | как бесплатно узнать кредитную историю |
+| draft | kak-uznat-vse-dolgi | как узнать все свои займы и долги |
 
 ## Кластер 3. Подборки (коммерческий, после 15–20 информационных статей)
 
@@ -48,7 +50,7 @@
 | Статус | Slug | Тема / главный запрос |
 |---|---|---|
 | review | kreditka-vmesto-zayma | кредитная карта или микрозайм — что выгоднее |
-| todo | kak-rabotaet-lgotnyy-period | как работает льготный период по кредитной карте |
+| draft | kak-rabotaet-lgotnyy-period | как работает льготный период по кредитной карте |
 | todo | snyatie-nalichnyh-s-kreditki | снятие наличных с кредитной карты: комиссии и проценты |
 | todo | minimalnyy-platezh-kreditka | минимальный платёж по кредитке: что будет, если пропустить |
 | todo | kreditka-s-plokhoy-ki | кредитная карта с плохой кредитной историей |
