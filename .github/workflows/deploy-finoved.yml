@@ -1,0 +1,55 @@
+name: Deploy finoved.ru
+
+# Собирает сайт из mfo-site/ и заливает папку out/ на хостинг reg.ru по FTP.
+# Секреты репозитория: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD.
+# Переменные репозитория (необязательные):
+#   FTP_DIR      — папка сайта на хостинге, по умолчанию www/finoved.ru/
+#   FTP_PROTOCOL — ftps (по умолчанию) или ftp, если хостинг не поддерживает TLS
+#   YM_ID        — номер счётчика Яндекс Метрики
+#   NOINDEX      — 1 закрывает сайт от индексации; поставьте 0, когда демо-офферы заменены
+
+on:
+  push:
+    branches: [main]
+    paths: ["mfo-site/**", ".github/workflows/deploy-finoved.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-finoved
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mfo-site
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mfo-site/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run check:content
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SITE_URL: https://finoved.ru
+          NEXT_PUBLIC_YM_ID: ${{ vars.YM_ID }}
+          NEXT_PUBLIC_NOINDEX: ${{ vars.NOINDEX || '1' }}
+
+      - name: Upload to reg.ru
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          local-dir: mfo-site/out/
+          server-dir: ${{ vars.FTP_DIR || 'www/finoved.ru/' }}

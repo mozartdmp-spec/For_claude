@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Все страницы генерируются статически. Для хостинга без Node.js
-  // (Yandex Object Storage, S3, обычный nginx) раскомментируйте:
-  // output: "export",
+  // Статическая сборка в папку out/ — заливается на обычный хостинг (reg.ru) без Node.js.
+  output: "export",
   trailingSlash: true,
   poweredByHeader: false,
 };

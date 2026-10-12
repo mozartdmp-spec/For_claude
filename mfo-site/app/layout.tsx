@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   description: "Независимые статьи о займах и банковских картах: как выбрать МФО или кредитку, посчитать переплату и не попасть в долговую яму.",
   openGraph: { siteName: site.name, locale: "ru_RU", type: "website" },
   alternates: { canonical: "./" },
+  robots: site.noindex ? { index: false, follow: false } : undefined,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

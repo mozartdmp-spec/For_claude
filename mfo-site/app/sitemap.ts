@@ -3,6 +3,8 @@ import { getAllArticles } from "@/lib/articles";
 import { offers } from "@/lib/offers";
 import { site } from "@/lib/site";
 
+export const dynamic = "force-static";
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages = ["/", "/zaimy/", "/kreditnye-karty/", "/debetovye-karty/", "/stati/", "/kalkulyator/", "/o-proekte/"].map((p) => ({ url: site.url + p }));
   const articles = getAllArticles().map((a) => ({ url: `${site.url}/stati/${a.slug}/`, lastModified: a.updated ?? a.date }));
