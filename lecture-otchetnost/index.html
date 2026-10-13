@@ -1,0 +1,1356 @@
+<title>Анализ отчётности акций и облигаций</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+/* Layout: хронометраж лекции слева (липкий на широком экране), текст лекции справа ~70 знаков; на телефоне хронометраж — список над текстом */
+:root{
+  --paper:#ECF0EB; --sheet:#FAFBF8; --sheet-2:#F1F4F0;
+  --ink:#16201B; --ink-2:#38453E; --muted:#5A6860; --rule:#CDD7D0; --rule-2:#A6B3AB;
+  --bond:#1B6855; --bond-soft:#D9EAE2;
+  --stock:#3B4C9B; --stock-soft:#E0E5F5;
+  --good:#2A7544; --good-soft:#DBEEDF;
+  --warn:#8F5D0E; --warn-soft:#F4E7CE;
+  --bad:#A63326; --bad-soft:#F6DFDA;
+  --f-display:"Unbounded","Onest",system-ui,sans-serif;
+  --f-body:"Onest","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"JetBrains Mono","PT Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1512; --sheet:#161E1A; --sheet-2:#1B2520;
+    --ink:#E3EAE5; --ink-2:#BAC6BF; --muted:#8D9B93; --rule:#29342F; --rule-2:#3D4B44;
+    --bond:#5DBFA4; --bond-soft:#132E27;
+    --stock:#95A4F0; --stock-soft:#1C2340;
+    --good:#6CC38B; --good-soft:#142E1E;
+    --warn:#E0AD55; --warn-soft:#33270F;
+    --bad:#EE8577; --bad-soft:#381B17;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1512; --sheet:#161E1A; --sheet-2:#1B2520;
+  --ink:#E3EAE5; --ink-2:#BAC6BF; --muted:#8D9B93; --rule:#29342F; --rule-2:#3D4B44;
+  --bond:#5DBFA4; --bond-soft:#132E27;
+  --stock:#95A4F0; --stock-soft:#1C2340;
+  --good:#6CC38B; --good-soft:#142E1E;
+  --warn:#E0AD55; --warn-soft:#33270F;
+  --bad:#EE8577; --bad-soft:#381B17;
+  color-scheme:dark;
+}
+@media (prefers-reduced-motion:no-preference){ html{scroll-behavior:smooth} }
+
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.6;overflow-wrap:break-word}
+.page{--k:var(--ink-2);--k-soft:var(--sheet-2)}
+[data-kind="bond"]{--k:var(--bond);--k-soft:var(--bond-soft)}
+[data-kind="stock"]{--k:var(--stock);--k-soft:var(--stock-soft)}
+a{color:var(--k)}
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--k);outline-offset:2px}
+.wrap{max-width:1180px;margin-inline:auto;padding-inline:20px}
+b,strong{font-weight:650}
+p,li{max-width:68ch}
+.mono,.tc{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* Hero */
+.hero{padding-block:44px 28px}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(1.7rem,1.1rem + 2.8vw,3rem);line-height:1.12;letter-spacing:-.015em;margin:0 0 18px;text-wrap:balance;max-width:20ch}
+.lede{font-size:1.12rem;color:var(--ink-2);margin:0 0 28px}
+.tl{display:flex;gap:3px;height:12px;max-width:820px}
+.tl span{border-radius:2px}
+.sw-n1{background:var(--rule-2)} .sw-n2{background:var(--muted)}
+.sw-bond{background:var(--bond)} .sw-stock{background:var(--stock)}
+.tl-scale{position:relative;height:22px;max-width:820px;font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.tl-scale span{position:absolute;top:4px;transform:translateX(-50%)}
+.tl-scale span:first-child{transform:none}
+.tl-scale span:last-child{transform:translateX(-100%)}
+
+/* Layout */
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;padding-bottom:40px}
+main{min-width:0;max-width:820px}
+.rail{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:16px;font-size:.92rem}
+.rail-title{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.rail ol{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:2px}
+.rail a{display:grid;grid-template-columns:10px 3.4rem minmax(0,1fr);gap:8px;align-items:baseline;padding:5px 8px;border-radius:5px;color:var(--ink-2);text-decoration:none}
+.rail a:hover{background:var(--sheet-2)}
+.rail a[aria-current="true"]{background:var(--sheet-2);color:var(--ink);font-weight:600}
+.rail .sw{width:10px;height:10px;border-radius:2px;align-self:center}
+.rail .sub a{color:var(--muted)}
+.rail .tc{font-size:.8rem;color:var(--muted)}
+.rail .plain a{grid-template-columns:minmax(0,1fr)}
+@media (min-width:1000px){
+  .layout{grid-template-columns:250px minmax(0,1fr);gap:48px}
+  .rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start;max-height:calc(100vh - 32px);overflow:auto}
+}
+
+.btn{font:inherit;font-size:.88rem;font-weight:600;color:var(--ink);background:var(--sheet-2);border:1px solid var(--rule-2);border-radius:6px;padding:7px 12px;cursor:pointer}
+.btn:hover{border-color:var(--ink-2)}
+
+/* Blocks */
+.block{padding-block:40px 8px;border-top:1px solid var(--rule);scroll-margin-top:12px}
+.block:first-child{border-top:0;padding-top:24px}
+.bh{margin-bottom:20px}
+.tc-line{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px;font-family:var(--f-mono);font-size:.82rem}
+.tc-line .tc{color:var(--paper);background:var(--k);padding:2px 8px;border-radius:4px}
+.dur{color:var(--k);font-family:var(--f-mono);font-size:.8rem;font-weight:600;white-space:nowrap}
+h2{font-family:var(--f-display);font-weight:700;font-size:clamp(1.3rem,1rem + 1.4vw,1.85rem);line-height:1.22;letter-spacing:-.01em;margin:0;text-wrap:balance}
+h3{font-size:1.22rem;line-height:1.3;margin:2.2em 0 .6em;text-wrap:balance;scroll-margin-top:12px}
+h3 .step-n{display:block;font-family:var(--f-mono);font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--k);margin-bottom:2px}
+h3 .dur{margin-left:6px}
+h4{font-size:1.04rem;margin:1.8em 0 .4em}
+.goal{color:var(--ink-2)}
+ul,ol{padding-left:1.25em}
+li+li{margin-top:.35em}
+.small{font-size:.86rem;color:var(--muted)}
+.plan{list-style:none;padding:0;display:grid;gap:4px;font-size:.92rem;color:var(--ink-2)}
+.plan .tc{color:var(--k);margin-right:8px}
+
+/* Tables */
+.tbl{overflow-x:auto;margin:14px 0 18px;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:.9rem;line-height:1.45;background:var(--sheet)}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--rule)}
+thead th{font-size:.74rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600;border-bottom:1.5px solid var(--rule-2)}
+tbody th{font-weight:600}
+caption{caption-side:top;text-align:left;font-family:var(--f-mono);font-size:.76rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:0 0 6px}
+.cmp th.h-bond{color:var(--bond)} .cmp th.h-stock{color:var(--stock)}
+.cmp tbody th{width:28%}
+.cmp.narrow tbody th{width:3rem}
+tr.grp th{background:var(--k-soft);color:var(--ink);font-size:.95rem;padding-top:10px}
+tr.grp th small{display:block;font-weight:400;color:var(--ink-2);font-size:.86rem;margin-top:2px}
+td.ok{color:var(--good)} td.alarm{color:var(--bad)}
+td.ok b,td.alarm b{font-weight:700}
+table.form{border:1px solid var(--rule-2)}
+table.form th,table.form td{border:1px solid var(--rule)}
+table.form thead th{text-transform:none;letter-spacing:0;font-size:.76rem;background:var(--sheet-2)}
+table.form .code{font-family:var(--f-mono);font-size:.84rem;color:var(--k);text-align:center;white-space:nowrap;width:4.8rem}
+.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+table.form tbody tr.sum td{font-weight:600}
+table.form td.sub{padding-left:24px;color:var(--ink-2)}
+
+@media (max-width:560px){
+  th,td{padding:7px 6px}
+  table{font-size:.84rem}
+  table.stack thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  table.stack tr{display:block;border-bottom:1px solid var(--rule-2);padding:6px 0}
+  table.stack th,table.stack td{display:block;border:0;padding:3px 8px}
+  table.stack tbody th{font-size:.95rem}
+  table.stack td::before{content:attr(data-label);display:block;font-size:.68rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+}
+
+/* Callouts */
+.callout{background:var(--k-soft);border-radius:6px;padding:14px 16px;margin:18px 0}
+.callout p{margin:.2em 0}
+.tag{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--k);font-weight:600;margin:0 0 4px}
+.callout.trap{--k:var(--bad);--k-soft:var(--bad-soft)}
+.callout.tip{--k:var(--good);--k-soft:var(--good-soft)}
+.callout.rule{background:var(--ink);color:var(--paper)}
+.callout.rule .tag{color:var(--paper);opacity:.75}
+.callout.rule p{font-weight:600;font-size:1.06rem}
+.formula{font-family:var(--f-mono);font-size:.88rem;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:10px 14px;margin:12px 0;overflow-x:auto;white-space:nowrap}
+.formula small{display:block;font-family:var(--f-body);white-space:normal;color:var(--muted);margin-top:4px}
+
+/* Lecturer notes */
+.note{border-block:1px dashed var(--rule-2);padding-block:10px;margin:18px 0;color:var(--ink-2);font-size:.95rem}
+.note-tag{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:var(--ink);background:var(--sheet-2);border:1px solid var(--rule-2);border-radius:3px;padding:1px 6px;margin-right:8px}
+.page.hide-notes .note{display:none}
+
+/* Grids */
+.cols{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin:14px 0}
+.cols>*{min-width:0}
+@media (min-width:720px){ .cols.c2{grid-template-columns:repeat(2,minmax(0,1fr))} .cols.c3{grid-template-columns:repeat(3,minmax(0,1fr))} }
+.card{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:14px 16px}
+.card h4{margin:0 0 6px}
+.card p{margin:.3em 0}
+.card .big{font-family:var(--f-display);font-size:1.6rem;line-height:1;color:var(--k);margin:0 0 8px}
+.card.stop{--k:var(--bad);background:var(--bad-soft);border-color:transparent}
+.card ul{margin:.4em 0 0}
+
+.steps{list-style:none;padding:0;margin:16px 0;display:grid;gap:6px}
+.steps li{margin:0;display:grid;grid-template-columns:2rem minmax(0,1fr) auto;gap:8px;align-items:baseline;background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:8px 12px}
+.steps .n{font-family:var(--f-display);color:var(--k);font-size:1.1rem}
+.steps .dur{font-weight:400}
+
+.chain{list-style:none;padding:0;margin:16px 0;display:grid;gap:0}
+.chain li{margin:0;display:grid;grid-template-columns:minmax(0,1fr);background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:8px 12px;font-weight:600}
+.chain li small{font-weight:400;color:var(--muted);font-size:.84rem}
+.chain .leak{background:transparent;border:0;padding:4px 12px 4px 26px;font-weight:400;font-size:.86rem;color:var(--bad);position:relative}
+.chain .leak::before{content:"↓";position:absolute;left:10px;color:var(--muted)}
+
+/* Answers */
+details{background:var(--sheet);border:1px solid var(--rule-2);border-radius:6px;margin:8px 0}
+summary{cursor:pointer;padding:10px 14px;font-weight:600;color:var(--k)}
+details[open] summary{border-bottom:1px solid var(--rule)}
+details .ans{padding:4px 16px 12px}
+.tasks li{margin-top:.5em}
+
+/* Bars (Евротранс) */
+.bars{display:grid;gap:8px;margin:14px 0}
+.bar-row{display:grid;grid-template-columns:5.5rem minmax(0,1fr) 3.4rem;gap:10px;align-items:center;font-size:.86rem}
+.bar{display:flex;height:16px;border-radius:3px;overflow:hidden;background:var(--rule)}
+.bar i{display:block;height:100%;background:var(--k)}
+.bar-row .num{font-weight:600}
+.legend-line{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:var(--muted)}
+.legend-line span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--rule)}
+.legend-line span.k::before{background:var(--k)}
+
+/* Checklists */
+.check{list-style:none;padding:0;margin:8px 0 14px}
+.check li{margin:0;border-bottom:1px solid var(--rule)}
+.check label{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:8px 2px;cursor:pointer}
+.check input{width:18px;height:18px;margin:3px 0 0;accent-color:var(--k)}
+.count{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+
+/* Calculators */
+.calcs{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+@media (min-width:1180px){ .calcs{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.calc{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:16px}
+.calc h3{margin:0 0 12px}
+.fields{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+@media (min-width:560px){ .fields{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.field{display:grid;gap:3px;font-size:.84rem;color:var(--ink-2)}
+.field .code{font-family:var(--f-mono);font-size:.74rem;color:var(--k)}
+.field input{font-family:var(--f-mono);font-size:.95rem;color:var(--ink);background:var(--paper);border:1px solid var(--rule-2);border-radius:5px;padding:6px 8px;width:100%;box-sizing:border-box}
+.out{margin-top:16px;border-top:1.5px solid var(--rule-2);padding-top:8px}
+.out dl{margin:0}
+.out .row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:7px 0;border-bottom:1px solid var(--rule);align-items:baseline}
+.out dt{font-size:.88rem}
+.out dt small{display:block;color:var(--muted);font-size:.76rem;font-family:var(--f-mono)}
+.out dd{margin:0;text-align:right;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-items:baseline}
+.out .v{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.calc .btn{margin-top:12px}
+.chip{display:inline-block;font-size:.72rem;font-weight:600;line-height:1.5;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.chip.good{background:var(--good-soft);color:var(--good)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.info{background:var(--sheet-2);color:var(--ink-2);border:1px solid var(--rule)}
+
+.foot{border-top:1px solid var(--rule);padding-block:20px 40px;font-size:.84rem;color:var(--muted)}
+.foot p{margin:.3em 0;max-width:90ch}
+</style>
+
+<div class="page" lang="ru" id="page">
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Практическая лекция · 60 минут · российские акции и облигации</p>
+    <h1>Анализ финансовой отчётности: акция или облигация</h1>
+    <p class="lede">Порядок, по которому за полчаса проверяют эмитента облигаций по РСБУ и МСФО, и тот же порядок для акции. Сценарий по минутам, две задачи на строках отчётности с ответами, чек-листы и два калькулятора.</p>
+    <div class="tl" role="img" aria-label="Хронометраж: вступление 5 минут, карта отчётности 8 минут, облигации 20 минут, акции 20 минут, мониторинг 5 минут, итог 2 минуты">
+      <span class="sw-n1" style="flex:5"></span>
+      <span class="sw-n2" style="flex:8"></span>
+      <span class="sw-bond" style="flex:20"></span>
+      <span class="sw-stock" style="flex:20"></span>
+      <span class="sw-n1" style="flex:5"></span>
+      <span class="sw-n2" style="flex:2"></span>
+    </div>
+    <div class="tl-scale" aria-hidden="true">
+      <span style="left:0">0</span>
+      <span style="left:21.67%">13</span>
+      <span style="left:55%">33</span>
+      <span style="left:88.33%">53</span>
+      <span style="left:100%">60 мин</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout wrap">
+
+<nav class="rail" aria-label="Хронометраж лекции">
+  <p class="rail-title">Хронометраж</p>
+  <ol>
+    <li><a href="#intro"><span class="sw sw-n1"></span><span class="tc">00:00</span><span>Два вопроса</span></a></li>
+    <li><a href="#map"><span class="sw sw-n2"></span><span class="tc">05:00</span><span>Карта отчётности</span></a></li>
+    <li><a href="#bonds"><span class="sw sw-bond"></span><span class="tc">13:00</span><span>Облигация за 30 минут</span></a></li>
+    <li class="sub"><a href="#evrotrans"><span></span><span class="tc">24:00</span><span>Разбор Евротранса</span></a></li>
+    <li class="sub"><a href="#bond-case"><span></span><span class="tc">26:00</span><span>Практика: ООО «Ромашка»</span></a></li>
+    <li><a href="#stocks"><span class="sw sw-stock"></span><span class="tc">33:00</span><span>Акция: тот же порядок</span></a></li>
+    <li class="sub"><a href="#stock-case"><span></span><span class="tc">46:00</span><span>Практика: ПАО «Василёк»</span></a></li>
+    <li><a href="#monitor"><span class="sw sw-n1"></span><span class="tc">53:00</span><span>Сигналы между отчётами</span></a></li>
+    <li><a href="#outro"><span class="sw sw-n2"></span><span class="tc">58:00</span><span>Итог и задание</span></a></li>
+  </ol>
+  <p class="rail-title">Приложения</p>
+  <ol class="plain">
+    <li><a href="#checklists"><span>Чек-листы</span></a></li>
+    <li><a href="#calc"><span>Калькуляторы</span></a></li>
+  </ol>
+  <button type="button" class="btn" id="toggle-notes" aria-pressed="false">Скрыть реплики лектора</button>
+</nav>
+
+<main>
+
+<!-- ============ 1. ВСТУПЛЕНИЕ ============ -->
+<section id="intro" class="block">
+  <header class="bh">
+    <p class="tc-line"><span class="tc">00:00–05:00</span><span class="dur">5 мин</span></p>
+    <h2>Два вопроса: кредитора и совладельца</h2>
+  </header>
+  <p>Одна и та же отчётность отвечает на разные вопросы. Какие именно, зависит от того, что вы купили.</p>
+  <p>Облигационер даёт компании в долг. Его доход ограничен купоном, поэтому задача одна: не попасть в дефолт. Акционер становится совладельцем. Его доход ничем не ограничен, но и защиты нет: деньги он получает последним. Поэтому кроме надёжности акционер оценивает цену.</p>
+  <div class="tbl">
+    <table class="cmp">
+      <thead><tr><th></th><th class="h-bond">Облигация</th><th class="h-stock">Акция</th></tr></thead>
+      <tbody>
+        <tr><th>Кто вы для компании</th><td>Кредитор</td><td>Совладелец</td></tr>
+        <tr><th>Главный вопрос</th><td>За счёт чего компания заплатит мне в ближайшие полгода?</td><td>Сколько бизнес заработает на мою акцию, сколько из этого дойдёт до меня и сколько я за это плачу?</td></tr>
+        <tr><th>Горизонт анализа</th><td>До ближайшей оферты или погашения</td><td>Два-три года и дальше</td></tr>
+        <tr><th>Лучший исход</th><td>Получил купоны и номинал</td><td>Растут прибыль и дивиденды, рынок переоценивает акцию</td></tr>
+        <tr><th>Худший исход</th><td>Дефолт, реструктуризация</td><td>Размытие доли, отмена дивидендов, годы без роста</td></tr>
+        <tr><th>Что важнее в отчётности</th><td>Деньги на счетах, долг, график платежей</td><td>Качество и рост прибыли, свободный денежный поток, цена</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout rule">
+    <p class="tag">Главная мысль лекции</p>
+    <p>Отчётность показывает состояние. Платит компания деньгами, которые где-то берёт. Поэтому в обоих случаях начинаем с денег и долга, а прибыль проверяем деньгами.</p>
+  </div>
+  <p class="note"><span class="note-tag">Лектору</span>Спросите зал: кто перед покупкой облигации открывал отчётность эмитента? А отчёт о движении денежных средств? Рук обычно становится вдвое меньше. С этого и начинаем.</p>
+</section>
+
+<!-- ============ 2. КАРТА ОТЧЁТНОСТИ ============ -->
+<section id="map" class="block">
+  <header class="bh">
+    <p class="tc-line"><span class="tc">05:00–13:00</span><span class="dur">8 мин</span></p>
+    <h2>Карта отчётности: РСБУ и МСФО</h2>
+  </header>
+  <p class="goal">Цель блока: открывать нужный отчёт под нужный вопрос и находить строки без чтения всего документа.</p>
+
+  <h3>РСБУ и МСФО: что важно инвестору</h3>
+  <div class="tbl">
+    <table class="cmp">
+      <thead><tr><th></th><th>РСБУ</th><th>МСФО</th></tr></thead>
+      <tbody>
+        <tr><th>Что описывает</th><td>Одно юрлицо</td><td>Группу целиком: материнская компания и «дочки»</td></tr>
+        <tr><th>Кто обязан составлять</th><td>Все компании</td><td>Компании с бумагами на бирже, банки, страховщики и др. по закону 208-ФЗ «О консолидированной финансовой отчётности». У закона «Об АО» тот же номер, не перепутайте</td></tr>
+        <tr><th>Когда выходит</th><td>Годовая — до 31 марта. У эмитентов ещё промежуточная, обычно за полугодие</td><td>Годовая — обычно март–апрель, за полугодие — к концу августа. Многие публикуют и квартальную</td></tr>
+        <tr><th>Где взять</th><td>ГИР БО (bo.nalog.gov.ru), e-disclosure.ru</td><td>Сайт компании, раздел для инвесторов; e-disclosure.ru</td></tr>
+        <tr><th>Номера строк</th><td>Есть: 1250, 2110, 4100…</td><td>Нет. Ищете по названиям и примечаниям</td></tr>
+        <tr><th>Сильная сторона</th><td>Единый формат, есть у любого эмитента ВДО. Основа для налогов и дивидендов</td><td>Видно весь бизнес: долг группы, сегменты, связанные стороны, график погашений</td></tr>
+        <tr><th>Слабое место</th><td>Нет консолидации: юрлицо может оказаться «краешком группы». Амортизация только в пояснениях</td><td>«Скорректированные» показатели, аренда по МСФО 16, свобода в классификации процентов. С 2022 года раскрытие у многих сокращено</td></tr>
+        <tr><th style="color:var(--bond)">Для облигаций</th><td>У многих ВДО есть только РСБУ. С ней и работаете</td><td>Если есть, смотрите долг группы и таблицу сроков погашения</td></tr>
+        <tr><th style="color:var(--stock)">Для акций</th><td>Дивиденды платятся из прибыли юрлица по РСБУ. Дивиденд по префам часто привязан к РСБУ уставом</td><td>Бизнес целиком. Дивполитики обычно пишутся от прибыли по МСФО</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Три отчёта, одна история</h3>
+  <p><b>Баланс</b> — снимок на дату: что у компании есть и за чей счёт. <b>Отчёт о финансовых результатах</b> (в МСФО — о прибыли или убытке) показывает, сколько заработали за период. Это начисления, не деньги. <b>Отчёт о движении денежных средств</b> показывает, откуда деньги пришли и куда ушли. В нём три потока: операционный, инвестиционный и финансовый.</p>
+  <p>Отчёты связаны. Связки удобно проверять по кодам РСБУ:</p>
+  <ul>
+    <li>Чистая прибыль (2400) увеличивает нераспределённую прибыль в балансе (1370). Выплаченные дивиденды её уменьшают.</li>
+    <li>Остаток денег на конец периода в отчёте о движении (4500) совпадает с деньгами в балансе (1250).</li>
+    <li>Капекс из инвестиционного потока (4221) появляется в балансе как рост основных средств (1150).</li>
+    <li>Новые кредиты и облигации из финансового потока (4311, 4314) увеличивают заёмные средства (1410, 1510).</li>
+  </ul>
+  <p>Если связка не сходится, компания показала движение где-то иначе. Обычно самое интересное лежит именно там. Четвёртая форма, отчёт об изменениях капитала, нужна акционеру: в ней видны дивиденды, допэмиссии и выкуп акций.</p>
+
+  <h3>Строки РСБУ, которые закрывают большинство вопросов</h3>
+  <div class="tbl">
+    <table class="form">
+      <thead><tr><th>Код</th><th>Строка</th><th>Зачем смотреть</th></tr></thead>
+      <tbody>
+        <tr class="grp"><th colspan="3">Бухгалтерский баланс</th></tr>
+        <tr><td class="code">1150</td><td>Основные средства</td><td>Сюда превращается капекс. Сравните рост с ростом выручки</td></tr>
+        <tr><td class="code">1170 · 1240</td><td>Финансовые вложения (долго- и краткосрочные)</td><td>Здесь займы выданные. Кому? Часто связанным сторонам</td></tr>
+        <tr><td class="code">1230</td><td>Дебиторская задолженность</td><td>Растёт быстрее выручки — деньги застревают у покупателей</td></tr>
+        <tr><td class="code">1250</td><td>Денежные средства и эквиваленты</td><td>Сколько денег прямо сейчас</td></tr>
+        <tr><td class="code">1300</td><td>Капитал и резервы</td><td>База для «долг / капитал»</td></tr>
+        <tr><td class="code">1370</td><td>Нераспределённая прибыль</td><td>Потолок дивидендов этого юрлица</td></tr>
+        <tr><td class="code">1410</td><td>Заёмные средства, долгосрочные</td><td>Часть переедет в 1510 в течение года</td></tr>
+        <tr><td class="code">1510</td><td>Заёмные средства, краткосрочные</td><td>Гасить в ближайшие 12 месяцев</td></tr>
+        <tr class="grp"><th colspan="3">Отчёт о финансовых результатах</th></tr>
+        <tr><td class="code">2110</td><td>Выручка</td><td>Масштаб и рост</td></tr>
+        <tr><td class="code">2200</td><td>Прибыль от продаж</td><td>Основа EBITDA: 2200 + амортизация из пояснений</td></tr>
+        <tr><td class="code">2310</td><td>Доходы от участия в других организациях</td><td>Дивиденды от «дочек». У холдинга это почти вся прибыль</td></tr>
+        <tr><td class="code">2330</td><td>Проценты к уплате</td><td>Только та часть, что не капитализирована</td></tr>
+        <tr><td class="code">2340 · 2350</td><td>Прочие доходы и расходы</td><td>Курсовые разницы, переоценки, разовые статьи, иногда факторинг</td></tr>
+        <tr><td class="code">2400</td><td>Чистая прибыль</td><td>База дивидендов по закону</td></tr>
+        <tr class="grp"><th colspan="3">Отчёт о движении денежных средств</th></tr>
+        <tr><td class="code">4100</td><td>Сальдо денежных потоков от текущих операций</td><td>Хватает ли потока</td></tr>
+        <tr><td class="code">4123</td><td>…в т. ч. проценты по долговым обязательствам</td><td>Уплаченные проценты в текущей деятельности</td></tr>
+        <tr><td class="code">4221</td><td>Приобретение и создание внеоборотных активов</td><td>Капекс</td></tr>
+        <tr><td class="code">4224</td><td>Проценты, включённые в стоимость инвестиционного актива</td><td>Капитализированные проценты. Прибавьте к 4123</td></tr>
+        <tr><td class="code">4311 · 4314</td><td>Получение кредитов · выпуск облигаций</td><td>Сколько заняли</td></tr>
+        <tr><td class="code">4322</td><td>Уплата дивидендов</td><td>Сколько реально выплачено</td></tr>
+        <tr><td class="code">4323</td><td>Погашение кредитов и облигаций</td><td>Сколько вернули</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small">Коды — из типовых форм, в которых отчётность лежит в ГИР БО. Платежи в отчёте о движении денег стоят в скобках.</p>
+
+  <h3>Где то же самое лежит в МСФО</h3>
+  <ul>
+    <li><b>Деньги</b> — «Денежные средства и их эквиваленты» в отчёте о финансовом положении.</li>
+    <li><b>Долг</b> — «Кредиты и займы» (краткосрочные и долгосрочные) плюс «Обязательства по аренде».</li>
+    <li><b>График платежей</b> — таблица обязательств по срокам погашения в примечании об управлении финансовыми рисками, раздел о риске ликвидности. Это готовый ответ на вопрос, сколько платить в ближайшие полгода.</li>
+    <li><b>Операционный поток</b> — «Чистые денежные средства от операционной деятельности». Сразу проверьте, где показаны уплаченные проценты.</li>
+    <li><b>Связанные стороны, сегменты, события после отчётной даты</b> — отдельные примечания. Если их нет, это тоже информация.</li>
+  </ul>
+  <div class="callout tip">
+    <p class="tag">Привычка</p>
+    <p>Начинайте с аудиторского заключения. Мнение с оговоркой, отказ от выражения мнения или внезапная смена аудитора — повод копать до любых расчётов.</p>
+  </div>
+  <p class="note"><span class="note-tag">Лектору</span>Покажите на экране одну РСБУ из ГИР БО и одну МСФО с сайта эмитента. Вместе с залом найдите 1250, 1510 и 4100, затем таблицу сроков погашения в МСФО. Это две минуты, после них строки перестают пугать.</p>
+</section>
+
+<!-- ============ 3. ОБЛИГАЦИИ ============ -->
+<section id="bonds" class="block" data-kind="bond">
+  <header class="bh">
+    <p class="tc-line"><span class="tc">13:00–33:00</span><span class="dur">20 мин</span></p>
+    <h2>Облигация: проверка эмитента за 30 минут</h2>
+  </header>
+  <p>Основа блока — методичка «Как проверить эмитента ВДО за 30 минут». Пять шагов выстроены так, чтобы отсеять компанию как можно раньше и не тратить время на остальное. Полчаса уходит на первое знакомство с компанией. Дальше по ней хватает двадцати минут в неделю.</p>
+  <ul class="plan">
+    <li><span class="tc">13:00</span>Пять шагов</li>
+    <li><span class="tc">24:00</span>Разбор Евротранса по этим шагам</li>
+    <li><span class="tc">26:00</span>Практика: ООО «Ромашка»</li>
+  </ul>
+  <div class="callout rule">
+    <p class="tag">Главный вопрос по любой облигации</p>
+    <p>За счёт чего эта компания заплатит мне в ближайшие полгода?</p>
+  </div>
+  <ol class="steps">
+    <li><span class="n">1</span><span>История компании</span><span class="dur">5 мин</span></li>
+    <li><span class="n">2</span><span>Деньги и ближайшие выплаты</span><span class="dur">7 мин</span></li>
+    <li><span class="n">3</span><span>Три источника денег</span><span class="dur">8 мин</span></li>
+    <li><span class="n">4</span><span>Отраслевая поправка</span><span class="dur">5 мин</span></li>
+    <li><span class="n">5</span><span>Флаги-стопы</span><span class="dur">5 мин</span></li>
+  </ol>
+
+  <h3 id="b1"><span class="step-n">Шаг 1 · 5 мин</span>История компании</h3>
+  <p>Что проверить до того, как открыть цифры:</p>
+  <ul>
+    <li><b>Кто акционеры</b> и какой у них бэкграунд.</li>
+    <li><b>Были ли реструктуризации или технические дефолты.</b> Один такой факт значит, что дальше смотреть надо очень внимательно. У Евротранса реструктуризация была ещё в 2016 году.</li>
+    <li><b>Кто материнская компания.</b> Рейтинг облигаций, рейтинг эмитента и рейтинг материнской компании — три разные вещи. Легко искать то, чего не существует.</li>
+    <li><b>Не является ли отчётность «краешком группы».</b> Если основной оборот идёт мимо этого юрлица, выводы по нему бессмысленны.</li>
+    <li><b>Понятна ли бизнес-модель</b> и откуда берётся рост.</li>
+    <li><b>Как компания ведёт себя публично.</b> Очень высокая PR-активность и спонсорство всех конференций подряд — уже вопрос.</li>
+  </ul>
+  <div class="callout">
+    <p class="tag">Как использовать находки</p>
+    <p>Жёсткого стопа на первом шаге нет. Найденный риск не запрещает покупку. Он сокращает срок, который вы готовы держать бумагу.</p>
+  </div>
+
+  <h3 id="b2"><span class="step-n">Шаг 2 · 7 мин</span>Деньги и ближайшие выплаты</h3>
+  <p>Две цифры, с которых начинается вся арифметика: сколько у компании денег на счетах прямо сейчас и сколько ей надо заплатить в ближайшие полгода — погашения, оферты, амортизации, купоны, кредиты.</p>
+  <div class="formula">Разрыв = выплаты за 6 месяцев − деньги на счетах</div>
+  <p>Денег почти всегда меньше. Значит, вопрос один: откуда возьмётся разница.</p>
+  <div class="cols c2">
+    <div class="card">
+      <h4>В РСБУ</h4>
+      <p><span class="mono">1250</span> — денежные средства и эквиваленты.</p>
+      <p><span class="mono">1510</span> — краткосрочные заёмные средства: то, что гасится в ближайшие 12 месяцев.</p>
+      <p><span class="mono">1410</span> — долгосрочные; часть переедет в 1510 в течение года.</p>
+      <p class="small">Точные сроки кредитов и облигаций — в пояснениях, раздел о заёмных средствах.</p>
+    </div>
+    <div class="card">
+      <h4>В МСФО</h4>
+      <p>Номеров строк нет, названия те же. Деньги — в отчёте о финансовом положении, кредиты и займы — в краткосрочных обязательствах.</p>
+      <p>В примечании об управлении риском ликвидности лежит таблица обязательств по срокам погашения. <b>Эта таблица и есть ответ на вопрос, сколько платить в ближайшие полгода.</b></p>
+    </div>
+  </div>
+  <p class="small">Календарь выплат по выпуску: брокерское приложение, Bondana, bondresearch.ru, smart-lab.ru/calendar/bonds. Всё бесплатно.</p>
+
+  <h3 id="b3"><span class="step-n">Шаг 3 · 8 мин</span>Три источника денег</h3>
+  <p>Ядро проверки. Разрыв из шага 2 компания закрывает из трёх источников, и по каждому есть свой вопрос.</p>
+  <div class="cols c3">
+    <div class="card"><p class="big">1</p><h4>Хватает ли операционного потока?</h4><p class="small">Есть ли он вообще и какого размера</p></div>
+    <div class="card"><p class="big">2</p><h4>Сможет ли она занять?</h4><p class="small">Как идут размещения, по какой цене, есть ли спрос</p></div>
+    <div class="card"><p class="big">3</p><h4>Поможет ли акционер?</h4><p class="small">Кто он и в каком состоянии сам</p></div>
+  </div>
+
+  <h4>Вопрос 1. Хватает ли операционного потока</h4>
+  <p><b>Где смотреть:</b> отчёт о движении денежных средств. В РСБУ — сальдо по текущим операциям (<span class="mono">4100</span>). В МСФО — чистый поток от операционной деятельности.</p>
+  <p><b>Поправка по МСФО.</b> Уплаченные проценты компания может показывать и в операционной деятельности, и в финансовой. Если они в финансовой, верните их в расчёт, иначе операционный поток выглядит лучше, чем есть. Ищите в учётной политике, обычно в примечании о денежных потоках.</p>
+  <p><b>Поправка по РСБУ.</b> Проценты, которые компания капитализировала в стройку, лежат в инвестиционных платежах (<span class="mono">4224</span>). Прибавьте их к процентам из <span class="mono">4123</span>.</p>
+  <p><b>Норма.</b> Поток не отрицательный и покрывает фактически уплаченные проценты. Если не покрывает, долг обслуживается новым долгом.</p>
+  <div class="formula">Покрытие процентов деньгами = (4100 + 4123) / (4123 + 4224)<small>Меньше 1 — проценты платятся из новых займов.</small></div>
+  <div class="cols c2">
+    <div class="callout trap"><p class="tag">Ловушка</p><p>У лизинговых компаний покупка портфеля может сидеть в операционном потоке, а может в капексе. Во втором случае смотрите на свободный денежный поток, иначе картина перевёрнута.</p></div>
+    <div class="callout trap"><p class="tag">Ловушка</p><p>Положительный поток может идти от сжатия портфеля. Тогда компания не зарабатывает, а распродаёт себя.</p></div>
+  </div>
+
+  <h4>Вопрос 2. Сможет ли она занять</h4>
+  <ul>
+    <li><b>Собрали ли последние размещения полный объём.</b></li>
+    <li><b>По какой цене торгуются выпуски.</b> Размещение по 92% от номинала значит, что бумаги не берут.</li>
+    <li><b>Кто организатор и был ли реальный спрос.</b> По девятому выпуску Евротранса из 500 млн заявок реального спроса было 90.</li>
+    <li><b>Есть ли неиспользованные банковские лимиты.</b> Лимитов нет — банки всё поняли раньше вас.</li>
+  </ul>
+  <p class="small">Где смотреть ход размещения: Good bonds и раздел размещений Мосбиржи.</p>
+
+  <h4>Вопрос 3. Поможет ли акционер</h4>
+  <p>Без инсайда это не предсказывается. Опереться можно только на репутационный расчёт: что для группы дороже — заплатить за проблемную «дочку» или получить удар по имени и дальше занимать дороже всем холдингом.</p>
+  <ul>
+    <li><b>Монополию не вытащили</b>, хотя среди миноритариев был фонд Private Equity от ВТБ.</li>
+    <li><b>Уральскую сталь вытащили</b>, хотя заранее было непонятно, есть ли у бенефициара ресурс.</li>
+  </ul>
+  <p><b>Проверочный вопрос:</b> релевантна ли эта отчётность вообще? Может быть, это часть группы, и через неё проходит только часть потоков.</p>
+  <div class="callout rule">
+    <p class="tag">Правило</p>
+    <p>Если ответа нет ни на один из трёх вопросов, вы, возможно, смотрите на будущий дефолт. Даже если по мультипликаторам всё выглядит отлично.</p>
+  </div>
+
+  <h3 id="b4"><span class="step-n">Шаг 4 · 5 мин</span>Отраслевая поправка</h3>
+  <p>Один и тот же показатель у разных компаний значит разное. Долг к EBITDA у производственника говорит о многом, у лизинговой компании почти ни о чём, у застройщика всё зависит от того, проектный это долг или корпоративный. Без поправки легко похоронить здоровую МФО и купить проблемного производственника. Ниже минимум на сектор, без которого считать бессмысленно.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Показатель</th><th>Норма</th><th>Тревога</th></tr></thead>
+      <tbody>
+        <tr class="grp"><th colspan="3">МФО<small>По привычке смотрят EBITDA к процентам. Смотреть надо на качество портфеля. Где: МСФО, примечание «Кредитный риск» с займами по стадиям и сверка резерва под ожидаемые кредитные убытки.</small></th></tr>
+        <tr><td>Просрочка 90+ дней к валовому портфелю</td><td class="ok">до <b>20–25%</b></td><td class="alarm">выше <b>35%</b> или рост более чем на 5 п. п. за год</td></tr>
+        <tr><td>Стоимость риска к процентным доходам</td><td class="ok">до <b>40–45%</b></td><td class="alarm">выше <b>60%</b></td></tr>
+        <tr><td>Займы выданные / долг</td><td class="ok">выше <b>120%</b></td><td class="alarm">ниже <b>100%</b></td></tr>
+        <tr class="grp"><th colspan="3">Лизинг<small>По привычке смотрят долг к EBITDA. Смотреть надо на ЧИЛ (чистые инвестиции в лизинг) и долг к капиталу. Где: МСФО — примечание о ЧИЛ; РСБУ — «чистые инвестиции в аренду», долг к капиталу = (1410 + 1510) / 1300.</small></th></tr>
+        <tr><td>ЧИЛ / чистый долг</td><td class="ok">больше <b>1</b></td><td class="alarm">меньше <b>1</b>: портфель уже не покрывает долг</td></tr>
+        <tr><td>Долг / капитал</td><td class="ok">до <b>6–7</b></td><td class="alarm">выше <b>8–10</b></td></tr>
+        <tr><td>Чистая процентная маржа</td><td class="ok"><b>7–13%</b></td><td class="alarm"><b>20–25%</b> — разбираться, не рисуют ли выручку</td></tr>
+        <tr><td>Изъятое имущество / ЧИЛ</td><td class="ok">до <b>2–3%</b></td><td class="alarm">выше <b>5%</b> или рост в разы</td></tr>
+        <tr class="grp"><th colspan="3">Коллекторы<small>Смотреть надо на портфель к долгу и на то, чем обслуживаются проценты. Где: МСФО и презентации на e-disclosure.ru; у непубличных — через балансовую стоимость портфелей.</small></th></tr>
+        <tr><td>Чистый долг / ERC (ожидаемые сборы по портфелю)</td><td class="ok">до <b>35–40%</b></td><td class="alarm">выше <b>55–60%</b></td></tr>
+        <tr><td>Портфель / чистый долг</td><td class="ok"><b>120%</b> и выше</td><td class="alarm">меньше <b>100%</b></td></tr>
+        <tr><td>Нетто-привлечение долга / инвестиции в портфель</td><td class="ok">до <b>60%</b></td><td class="alarm">больше <b>80%</b></td></tr>
+        <tr><td>(Сборы − операционные расходы) / уплаченные проценты</td><td class="ok">больше <b>3</b></td><td class="alarm">меньше <b>2</b></td></tr>
+        <tr class="grp"><th colspan="3">Застройщики<small>По привычке смотрят просто на долг. Смотреть надо на проектное финансирование отдельно от корпоративного и на эскроу. Где: наш.дом.рф (стройготовность, сроки ввода), эскроу и проектный долг — в МСФО.</small></th></tr>
+        <tr><td>Распроданность минус стройготовность</td><td class="ok">продажи отстают от стройки не больше чем на <b>10–15 п. п.</b></td><td class="alarm">готовность выше <b>60–70%</b>, распроданность ниже <b>40–50%</b></td></tr>
+        <tr><td>Эскроу / проектный долг</td><td class="ok">к концу стройки от <b>100%</b></td><td class="alarm">ниже <b>50%</b> при готовности выше <b>70%</b></td></tr>
+        <tr class="grp"><th colspan="3">Производство<small>По привычке смотрят долг к EBITDA. Ловушка: факторинг может почти удвоить реальную долговую нагрузку, а в этой формуле его нет. Где: госконтракты по ИНН на zakupki.gov.ru, факторинг — в пояснениях и примечаниях о финансовых обязательствах.</small></th></tr>
+        <tr><td>Портфель заказов / годовая выручка</td><td class="ok">от <b>1</b></td><td class="alarm">ниже <b>0,5</b></td></tr>
+        <tr><td>Долг с учётом факторинга / EBITDA</td><td class="ok">до <b>2,5</b></td><td class="alarm">выше <b>3,5</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout trap">
+    <p class="tag">Ловушка во всех секторах</p>
+    <p>Часть процентов компания может капитализировать. Тогда покрытие процентов по отчёту о финансовых результатах выглядит вдвое лучше, чем по фактически уплаченным в отчёте о движении денег.</p>
+  </div>
+
+  <h3 id="b5"><span class="step-n">Шаг 5 · 5 мин</span>Флаги-стопы</h3>
+  <div class="cols c2">
+    <div class="card stop">
+      <h4>Выхожу в тот же день</h4>
+      <ul>
+        <li>Технический дефолт или невыплата купона</li>
+        <li>Блокировка счетов ФНС</li>
+        <li>Посадка бенефициара или гендиректора</li>
+        <li>Заявление о банкротстве</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Смотрю внимательно и считаю</h4>
+      <ul>
+        <li>Сорванное или отозванное размещение</li>
+        <li>Отзыв кредитного рейтинга по инициативе самой компании</li>
+        <li>Письма эмитента инвесторам, особенно со сменой тона</li>
+        <li>Проблемы с продажами, например блокировка экспорта</li>
+      </ul>
+    </div>
+  </div>
+
+  <h4>Рамки и лимиты автора методички</h4>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Параметр</th><th>Значение</th></tr></thead>
+      <tbody>
+        <tr><td>Нормальная доходность к погашению для ВДО</td><td><b>20–25%</b>, край <b>27–30%</b></td></tr>
+        <tr><td>Доходность выше 30%</td><td class="alarm">Реальный дистресс, надо копать</td></tr>
+        <tr><td>Лимит на эмитента в настоящих ВДО</td><td><b>2,5%</b> портфеля</td></tr>
+        <tr><td>Лимит в «просто высоком» риске</td><td><b>5%</b> портфеля</td></tr>
+        <tr><td>Сколько бумаг реально отслеживать</td><td>около <b>20</b></td></tr>
+        <tr><td>Доля дорогих облигаций в финансировании компании, после которой загорается лампочка</td><td><b>четверть и выше</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small">Если у компании в целом низкая средняя ставка по долгу, а дорогие облигации — небольшая добавка, это нормально. Ненормально, когда четверть или половина всего финансирования — дорогие облигации. Пороги доходности привязаны к уровню ключевой ставки на момент написания методички. Если ставка заметно сдвинулась, сдвигайте их вместе с ней или считайте премию к ОФЗ той же дюрации.</p>
+
+  <h3 id="evrotrans"><span class="step-n">24:00–26:00 · 2 мин</span>Разбор: Евротранс по этому порядку</h3>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Шаг</th><th>Что было видно</th></tr></thead>
+      <tbody>
+        <tr><th>1. История</th><td>Реструктуризация 2016 года: компания уже один раз не смогла заплатить. Непонятная бизнес-модель: основная выручка от нефтетрейдинга, причины активного роста неясны. Очень высокая PR-активность.</td></tr>
+        <tr><th>2. Деньги и выплаты</th><td>3 млрд ₽ погашений в 2026 году плюс амортизации. 20 млрд ₽ краткосрочных кредитов и займов: 5 банковских, 15 — облигации и ЦФА. Неиспользованных банковских лимитов нет.</td></tr>
+        <tr><th>3. Три источника</th><td>Операционный поток минус 1 млрд ₽ за девять месяцев. Восьмой выпуск торговался по 93%, девятый по 88%; из 500 млн ₽ заявок реального спроса было 90. Акционер не помог.</td></tr>
+        <tr><th>4. Отраслевая поправка</th><td>У трейдера нефтепродуктов выручка гигантская, маржа тонкая, EBITDA рисуется легко. Рабочий приём: доля налогов в выручке. Топливо — самый обложенный товар в стране, и следы сорока с лишним миллиардов оборота обязаны остаться в бюджете. У Евротранса эта цифра была занижена.</td></tr>
+        <tr><th>5. Флаги-стопы</th><td>13 марта АКРА отзывает рейтинг по инициативе компании. 19 марта — технический дефолт по народным облигациям. Дальше апрельский техдефолт и к сентябрю дефолты по всем десяти выпускам.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><b>Что было видно заранее: капекс.</b> Соотношение вложений в здания и в оборудование:</p>
+  <div class="bars" role="img" aria-label="Доля зданий в капексе: 2023 год — 1 к 1, 2024 год — 8 к 1, первое полугодие 2025 года — 17 к 1">
+    <div class="bar-row"><span>2023</span><span class="bar"><i style="width:50%"></i></span><span class="num">1 : 1</span></div>
+    <div class="bar-row"><span>2024</span><span class="bar"><i style="width:88.9%"></i></span><span class="num">8 : 1</span></div>
+    <div class="bar-row"><span>1П 2025</span><span class="bar"><i style="width:94.4%"></i></span><span class="num">17 : 1</span></div>
+  </div>
+  <div class="legend-line"><span class="k">здания</span><span>оборудование</span></div>
+  <p>За полтора года капекс в здания вырос вчетверо, в оборудование упал в десять раз. За 2024 год открыли две станции, ещё четыре в стройке: 11,8 млрд ₽ в статье «здания» на шесть станций максимум. Подрядчики в отчётности не раскрыты, а стройкомпетенция у группы своя.</p>
+  <div class="callout rule">
+    <p class="tag">Вывод</p>
+    <p>Все эти проблемы не мешали компании три года исправно платить высокие купоны. Поэтому анализ — половина дела. Вторая половина — вовремя выйти.</p>
+  </div>
+
+  <h3 id="bond-case"><span class="step-n">26:00–33:00 · 7 мин · практика</span>Задача: ООО «Ромашка»</h3>
+  <p>Учебный эмитент, все цифры условные. Производственная компания, облигации на рынке ВДО, отчётность только по РСБУ. Выпуски дают около 31% к погашению. Покупать?</p>
+  <div class="tbl">
+    <table class="form">
+      <caption>Бухгалтерский баланс, млн ₽</caption>
+      <thead><tr><th>Наименование показателя</th><th>Код</th><th>На конец года</th><th>На начало года</th></tr></thead>
+      <tbody>
+        <tr><td>Финансовые вложения (займы выданные)</td><td class="code">1240</td><td class="num">420</td><td class="num">120</td></tr>
+        <tr><td>Денежные средства и эквиваленты</td><td class="code">1250</td><td class="num">180</td><td class="num">560</td></tr>
+        <tr><td>Капитал и резервы</td><td class="code">1300</td><td class="num">1 100</td><td class="num">875</td></tr>
+        <tr><td>Заёмные средства, долгосрочные</td><td class="code">1410</td><td class="num">900</td><td class="num">1 100</td></tr>
+        <tr><td>Заёмные средства, краткосрочные</td><td class="code">1510</td><td class="num">1 050</td><td class="num">600</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="cols c2">
+    <div class="tbl" style="margin:0">
+      <table class="form">
+        <caption>Финансовые результаты, млн ₽</caption>
+        <thead><tr><th>Показатель</th><th>Код</th><th>За год</th></tr></thead>
+        <tbody>
+          <tr><td>Выручка</td><td class="code">2110</td><td class="num">6 000</td></tr>
+          <tr><td>Прибыль от продаж</td><td class="code">2200</td><td class="num">620</td></tr>
+          <tr><td>Проценты к уплате</td><td class="code">2330</td><td class="num">(290)</td></tr>
+          <tr><td>Чистая прибыль</td><td class="code">2400</td><td class="num">225</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tbl" style="margin:0">
+      <table class="form">
+        <caption>Движение денежных средств, млн ₽</caption>
+        <thead><tr><th>Показатель</th><th>Код</th><th>За год</th></tr></thead>
+        <tbody>
+          <tr class="sum"><td>Сальдо текущих операций</td><td class="code">4100</td><td class="num">210</td></tr>
+          <tr><td class="sub">в т. ч. уплачены проценты</td><td class="code">4123</td><td class="num">(250)</td></tr>
+          <tr><td>Капекс</td><td class="code">4221</td><td class="num">(380)</td></tr>
+          <tr><td>Займы выданные</td><td class="code">4223</td><td class="num">(300)</td></tr>
+          <tr><td>Капитализированные проценты</td><td class="code">4224</td><td class="num">(160)</td></tr>
+          <tr><td>Кредиты и облигации получены</td><td class="code">4311+4314</td><td class="num">1 300</td></tr>
+          <tr><td>Погашено кредитов и облигаций</td><td class="code">4323</td><td class="num">(1 050)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <h4>Пояснения и рынок</h4>
+  <ul>
+    <li>Амортизация за год (пояснения, раздел «Основные средства»): <b>130</b>.</li>
+    <li>Факторинг с правом регресса: задолженность перед фактором <b>900</b>, в строки 1410 и 1510 не входит.</li>
+    <li>Заём <b>300</b> выдан ООО «Ромашка-Строй», компании под общим контролем бенефициара.</li>
+    <li>Неиспользованные банковские лимиты: <b>100</b>.</li>
+    <li>Выплаты в ближайшие 6 месяцев: оферта по выпуску БО-02 через 4 месяца — <b>400</b>, амортизация БО-01 — <b>150</b>, купоны — <b>120</b>, погашение банковского кредита — <b>300</b>.</li>
+    <li>Последнее размещение (БО-03): собрали <b>300 из 500</b>. Выпуски торгуются по <b>91–93%</b> номинала, доходность около <b>31%</b>.</li>
+    <li>Портфель заказов (госконтракты на zakupki.gov.ru и раскрытие): <b>3 600</b>.</li>
+    <li>Акционер — одно физлицо, других крупных активов не видно.</li>
+  </ul>
+  <h4>Задания</h4>
+  <ol class="tasks">
+    <li>Посчитайте разрыв между деньгами и выплатами на полгода.</li>
+    <li>Посчитайте чистый долг / EBITDA так, как его покажет компания в презентации, и с учётом факторинга.</li>
+    <li>Сравните покрытие процентов по отчёту о финансовых результатах и деньгами.</li>
+    <li>Ответьте на три вопроса и вынесите вердикт. А если бумага уже в портфеле?</li>
+  </ol>
+  <p class="note"><span class="note-tag">Лектору</span>Дайте четыре минуты на задания 1–3 в парах, затем три минуты на вердикт. Ответы раскрывайте по одному и спрашивайте, у кого получилось иначе.</p>
+
+  <details>
+    <summary>Ответ 1. Разрыв на полгода</summary>
+    <div class="ans">
+      <p>Выплаты: 400 + 150 + 120 + 300 = <b>970 млн</b>. Денег на счетах 180. Разрыв <b>790 млн</b>: деньги закрывают меньше пятой части выплат (19%).</p>
+    </div>
+  </details>
+  <details>
+    <summary>Ответ 2. Долг / EBITDA</summary>
+    <div class="ans">
+      <p>EBITDA = 2200 + амортизация = 620 + 130 = <b>750</b>.</p>
+      <p>Чистый долг = 900 + 1 050 − 180 = 1 770. Чистый долг / EBITDA = <b>2,4</b> — в норме для производства (до 2,5).</p>
+      <p>С факторингом: 1 770 + 900 = 2 670, и показатель = <b>3,6</b>, выше порога тревоги 3,5. Одна строка пояснений переводит компанию из нормы в тревогу.</p>
+    </div>
+  </details>
+  <details>
+    <summary>Ответ 3. Покрытие процентов</summary>
+    <div class="ans">
+      <p>По отчёту о финансовых результатах: 750 / 290 = <b>2,6 раза</b>. Выглядит прилично.</p>
+      <p>Деньгами: (210 + 250) / (250 + 160) = 460 / 410 = <b>1,1 раза</b>. После всех процентов от операционного потока остаётся 50 млн, а капекс 380.</p>
+      <p>Свободный поток: 210 − 380 − 160 = <b>−330 млн</b>. Стройку и часть процентов компания финансирует новым долгом: заняла 1 300, вернула 1 050. И ещё выдала 300 млн связанной компании.</p>
+    </div>
+  </details>
+  <details>
+    <summary>Ответ 4. Три вопроса и вердикт</summary>
+    <div class="ans">
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Вопрос</th><th>Ответ</th></tr></thead>
+          <tbody>
+            <tr><td>Хватает ли потока?</td><td class="alarm"><b>Нет.</b> Его хватает только на проценты. На выплаты 970 млн — нет.</td></tr>
+            <tr><td>Сможет ли занять?</td><td class="alarm"><b>Сомнительно.</b> Последнее размещение собрало 60% объёма, выпуски по 91–93%, доходность выше 30% — зона дистресса. Лимиты 100 млн против разрыва 790.</td></tr>
+            <tr><td>Поможет ли акционер?</td><td class="alarm"><b>Скорее нет.</b> Ресурсов не видно, и деньги идут в обратную сторону: 300 млн ушли связанной компании.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Портфель заказов 3 600 / 6 000 = 0,6 годовой выручки: ниже нормы (от 1), но выше порога тревоги (0,5).</p>
+      <p><b>Вердикт:</b> уверенного ответа нет ни на один вопрос. По правилу методички это кандидат в будущий дефолт, хотя «презентационный» долг / EBITDA 2,4 выглядит нормально. Не покупать.</p>
+      <p><b>Если бумага уже в портфеле</b>, решите сейчас: продать по 91–93% или идти в оферту через 4 месяца, понимая, что оферта (400) больше всех денег на счетах (180).</p>
+    </div>
+  </details>
+</section>
+
+<!-- ============ 4. АКЦИИ ============ -->
+<section id="stocks" class="block" data-kind="stock">
+  <header class="bh">
+    <p class="tc-line"><span class="tc">33:00–53:00</span><span class="dur">20 мин</span></p>
+    <h2>Акция: тот же порядок, другой вопрос</h2>
+  </header>
+  <p>Каркас остаётся: пять шагов, полчаса, отсеиваем как можно раньше. Меняются главный вопрос и нормы. Кредитору достаточно, чтобы компания не упала. Акционеру нужно, чтобы она зарабатывала больше, делилась с ним и стоила разумных денег.</p>
+  <ul class="plan">
+    <li><span class="tc">33:00</span>Пять шагов</li>
+    <li><span class="tc">46:00</span>Практика: ПАО «Василёк»</li>
+  </ul>
+  <div class="callout rule">
+    <p class="tag">Главный вопрос по любой акции</p>
+    <p>Сколько бизнес заработает на мою акцию в ближайшие 2–3 года, сколько из этого дойдёт до меня и не переплачиваю ли я?</p>
+  </div>
+  <div class="cols c3">
+    <div class="card"><p class="big">1</p><h4>Настоящая ли прибыль?</h4><p class="small">Подтверждена ли она деньгами</p></div>
+    <div class="card"><p class="big">2</p><h4>Дойдут ли деньги до акционера?</h4><p class="small">Дивиденды и байбэк, или капекс, долг и мажоритарий</p></div>
+    <div class="card"><p class="big">3</p><h4>Сколько я за это плачу?</h4><p class="small">Цена против ОФЗ, истории и аналогов</p></div>
+  </div>
+  <div class="tbl">
+    <table class="cmp narrow">
+      <thead><tr><th>Шаг</th><th class="h-bond">Облигация</th><th class="h-stock">Акция</th><th>Время</th></tr></thead>
+      <tbody>
+        <tr><th>1</th><td>История компании</td><td>Кто владелец и что именно вы покупаете</td><td class="mono">5 мин</td></tr>
+        <tr><th>2</th><td>Деньги и ближайшие выплаты</td><td>Долг и цена денег</td><td class="mono">5 мин</td></tr>
+        <tr><th>3</th><td>Три источника денег</td><td>Качество прибыли</td><td class="mono">8 мин</td></tr>
+        <tr><th>4</th><td>Отраслевая поправка</td><td>Что дойдёт до акционера: дивиденды по МСФО и РСБУ</td><td class="mono">5 мин</td></tr>
+        <tr><th>5</th><td>Флаги-стопы</td><td>Цена, отраслевая поправка, флаги</td><td class="mono">7 мин</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="s1"><span class="step-n">Шаг 1 · 5 мин</span>Кто владелец и что именно вы покупаете</h3>
+  <ul>
+    <li><b>Кто контролирует компанию</b>: государство, частный мажоритарий, менеджмент. Какой free-float. Есть ли квазиказначейские акции на балансе «дочек»: при расчёте капитализации и дивиденда на акцию их исключают.</li>
+    <li><b>Обыкновенная или привилегированная.</b> Дивиденд по префам прописан в уставе, читайте устав. Пример: по уставу Сургутнефтегаза на привилегированные акции идёт фиксированная доля чистой прибыли по РСБУ, в сумме около 7,1%. Эта прибыль сильно зависит от курсовых разниц по валютным депозитам (2340 и 2350): крепкий рубль даёт меньший дивиденд.</li>
+    <li><b>Холдинг или операционная компания.</b> У холдинга РСБУ материнской компании — тот же «краешек группы», что и в облигациях. Дивиденды платятся из её прибыли, а она складывается из дивидендов «дочек» (строка 2310).</li>
+    <li><b>Как компания обходилась с миноритариями</b>: допэмиссии, SPO с дисконтом, обмены и выкупы по низкой цене, отмены дивидендов.</li>
+    <li><b>Понятна ли бизнес-модель</b> и откуда рост. Как в облигациях.</li>
+  </ul>
+  <p class="small">Где смотреть: устав, отчёт эмитента и существенные факты — e-disclosure.ru; структура группы и дивполитика — сайт компании.</p>
+
+  <h3 id="s2"><span class="step-n">Шаг 2 · 5 мин</span>Долг и цена денег</h3>
+  <p>Для акционера долг опасен раньше, чем для кредитора. Компания может годами исправно платить купоны и не платить дивиденды: всё заработанное уходит банкам и облигационерам.</p>
+  <ul>
+    <li><b>Чистый долг / EBITDA.</b> Считайте сопоставимо: либо долг с арендой и EBITDA по МСФО 16, либо обе величины без аренды.</li>
+    <li><b>График погашений</b> — та же таблица сроков из примечания о риске ликвидности, что и для облигаций.</li>
+    <li><b>Доля плавающей ставки.</b> При высокой ключевой ставке плавающий долг напрямую съедает прибыль акционера. В примечании о процентном риске часто прямо написано, насколько изменится прибыль при сдвиге ставки на 1 п. п.</li>
+    <li><b>Покрытие процентов</b> по отчёту и по фактически уплаченным. Капитализация процентов работает и здесь.</li>
+  </ul>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Показатель</th><th>Норма</th><th>Тревога</th></tr></thead>
+      <tbody>
+        <tr><td>Чистый долг / EBITDA</td><td class="ok">до <b>1,5</b></td><td class="alarm">выше <b>3</b>; между 1,5 и 3 смотрите график погашений и ставку</td></tr>
+        <tr><td>EBITDA / проценты</td><td class="ok">выше <b>4</b></td><td class="alarm">ниже <b>2</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small">Это ориентиры для нефинансовых компаний. Банки, лизинг и МФО считаются иначе.</p>
+
+  <h3 id="s3"><span class="step-n">Шаг 3 · 8 мин</span>Качество прибыли</h3>
+  <p>Пройдите от выручки до денег акционера и посмотрите, где утекает больше всего.</p>
+  <ol class="chain">
+    <li>Выручка</li>
+    <li class="leak">себестоимость и операционные расходы</li>
+    <li>EBITDA <small>показатель компании; проверьте, что «скорректировано»</small></li>
+    <li class="leak">амортизация, проценты, налог, разовые статьи</li>
+    <li>Чистая прибыль <small>база дивполитики</small></li>
+    <li class="leak">рост дебиторки и запасов, неденежные доходы</li>
+    <li>Операционный поток</li>
+    <li class="leak">капекс, платежи по аренде, проценты из финансового потока</li>
+    <li>Свободный денежный поток (FCF)</li>
+    <li class="leak">решение совета директоров и собрания</li>
+    <li>Дивиденды и байбэк</li>
+  </ol>
+  <div class="formula">FCF = операционный поток − проценты (если они в финансовом потоке) − капекс − платежи по аренде</div>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Проверка</th><th>Норма</th><th>Тревога</th></tr></thead>
+      <tbody>
+        <tr><td>Операционный поток после процентов / чистая прибыль, за 2–3 года</td><td class="ok"><b>1</b> и выше</td><td class="alarm">систематически ниже <b>0,7</b>: прибыль «бумажная»</td></tr>
+        <tr><td>Дебиторка и запасы против выручки</td><td class="ok">растут вместе с выручкой</td><td class="alarm">растут заметно быстрее: деньги застревают</td></tr>
+        <tr><td>Разовые статьи: курсовые разницы, обесценение, переоценка, продажа активов</td><td class="ok">небольшие и разные каждый год</td><td class="alarm">«разовые» расходы повторяются из года в год</td></tr>
+        <tr><td>Скорректированная EBITDA против операционной прибыли + амортизации</td><td class="ok">разница объяснена</td><td class="alarm">разница растёт без объяснений</td></tr>
+        <tr><td>НМА и капитализированные затраты на разработку</td><td class="ok">растут вместе с бизнесом</td><td class="alarm">растут быстрее выручки: расходы прячут в баланс</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="cols c2">
+    <div class="callout trap"><p class="tag">Ловушка: МСФО 16</p><p>Аренда переезжает из операционных расходов в амортизацию и проценты. EBITDA растёт, долг тоже. У ритейлеров с большой арендой разница существенная. Сравнивайте компании одинаково.</p></div>
+    <div class="callout trap"><p class="tag">Ловушка: проценты</p><p>Если уплаченные проценты стоят в финансовом потоке, операционный поток выглядит лучше. Вычитайте их при расчёте FCF. В РСБУ добавляйте капитализированные проценты из 4224.</p></div>
+  </div>
+
+  <h3 id="s4"><span class="step-n">Шаг 4 · 5 мин</span>Что дойдёт до акционера: дивиденды по МСФО и РСБУ</h3>
+  <p>Здесь РСБУ и МСФО встречаются. Дивидендная политика обычно привязана к МСФО, а юридически дивиденд платит конкретное юрлицо из своей прибыли по РСБУ.</p>
+  <div class="cols c2">
+    <div class="card">
+      <h4>Сколько обещают: МСФО</h4>
+      <p>Дивполитика задаёт базу: долю чистой прибыли по МСФО, долю FCF или формулу из устава для префов. Сбер — 50% чистой прибыли по МСФО при достаточном капитале. Госкомпании ориентируются на 50% прибыли по МСФО по требованию Правительства.</p>
+      <p><b>Обещание не обязательство.</b> Совет директоров рекомендует, собрание утверждает. Газпром при политике 50% скорректированной прибыли по МСФО не выплатил дивиденды за 2023 год.</p>
+    </div>
+    <div class="card">
+      <h4>Сколько можно заплатить: РСБУ</h4>
+      <p>По закону «Об АО» (ст. 42–43) дивиденды платятся из чистой прибыли общества по бухгалтерской отчётности. Объявлять их нельзя, если стоимость чистых активов меньше уставного капитала, резервного фонда и превышения ликвидационной стоимости префов над номиналом или станет меньше после выплаты, а также при признаках банкротства.</p>
+      <p><b>Потолок</b> — нераспределённая прибыль материнской компании, строка <span class="mono">1370</span>.</p>
+    </div>
+  </div>
+  <ul>
+    <li><b>Дивиденд по политике меньше FCF?</b> Если выплаты два года подряд больше FCF, компания платит в долг. Долго так не продолжается.</li>
+    <li><b>У холдинга</b> смотрите РСБУ материнской: дивиденды от «дочек» (2310), нераспределённую прибыль (1370), долг корпоративного центра.</li>
+    <li><b>Размытие</b>: число акций в отчёте об изменениях капитала, допэмиссии, SPO, опционные программы (выплаты на основе акций).</li>
+    <li><b>Байбэк</b>: гасятся ли выкупленные акции или остаются на балансе группы.</li>
+  </ul>
+
+  <h3 id="s5"><span class="step-n">Шаг 5 · 7 мин</span>Цена, отраслевая поправка, флаги</h3>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Мультипликатор</th><th>Формула</th><th>Как читать</th></tr></thead>
+      <tbody>
+        <tr><th>P/E</th><td>Капитализация / чистая прибыль (лучше скорректированная)</td><td>Обратная величина E/P — «доходность прибыли». Сравните с доходностью ОФЗ: если E/P ниже, вы платите за рост, и он должен быть.</td></tr>
+        <tr><th>EV/EBITDA</th><td>(Капитализация + чистый долг) / EBITDA</td><td>Не зависит от долга и налогов, удобно сравнивать внутри сектора. Если EBITDA по МСФО 16, включайте аренду в долг.</td></tr>
+        <tr><th>P/BV</th><td>Капитализация / собственный капитал</td><td>Для банков и финансовых компаний. Справедливый P/BV ≈ ROE / требуемая доходность.</td></tr>
+        <tr><th>FCF yield</th><td>FCF / капитализация</td><td>Сколько денег бизнес приносит на рубль цены. Дивидендная доходность выше FCF yield — платят в долг.</td></tr>
+        <tr><th>Дивдоходность</th><td>Дивиденд на акцию / цена</td><td>Считайте по реалистичному дивиденду, а не по максимуму из политики.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Сравнивайте с тремя базами: историей самой компании за 5 лет, аналогами в секторе и доходностью ОФЗ. Решение принимайте по трём принципам отбора: <b>цена</b> (дёшево ли относительно прибыли и денег), <b>катализатор</b> (что заставит рынок переоценить акцию: дивиденды, байбэк, снижение ставки, конец капекс-цикла, смена контроля), <b>рост</b> (растёт ли бизнес быстрее инфляции).</p>
+
+  <h4>Отраслевая поправка для акций</h4>
+  <div class="tbl">
+    <table class="stack">
+      <thead><tr><th>Сектор</th><th>По привычке смотрят</th><th>Смотреть надо</th><th>Где</th></tr></thead>
+      <tbody>
+        <tr><th>Банки</th><td data-label="По привычке смотрят">P/E</td><td data-label="Смотреть надо">P/BV против ROE, достаточность капитала против цели из дивполитики, стоимость риска, чистая процентная маржа</td><td data-label="Где">МСФО банка; ежемесячная РСБУ, если банк её публикует. У Сбера это ранний сигнал к годовой прибыли</td></tr>
+        <tr><th>Нефтегаз и экспортёры</th><td data-label="По привычке смотрят">P/E</td><td data-label="Смотреть надо">FCF и FCF yield, капекс-цикл, чувствительность к курсу рубля и цене нефти, налоги (НДПИ, НДД, демпфер)</td><td data-label="Где">МСФО, презентации; для префов Сургутнефтегаза — РСБУ и курсовые разницы</td></tr>
+        <tr><th>Ритейл</th><td data-label="По привычке смотрят">Долг / EBITDA</td><td data-label="Смотреть надо">LFL-продажи (трафик и средний чек) против инфляции, EBITDA-маржа без МСФО 16, долг с арендой и без, оборачиваемость запасов</td><td data-label="Где">Квартальные операционные результаты, МСФО</td></tr>
+        <tr><th>Девелоперы</th><td data-label="По привычке смотрят">P/E (прибыль признаётся по мере стройки)</td><td data-label="Смотреть надо">Продажи в м² и рублях, денежные поступления, эскроу против проектного долга, корпоративный долг отдельно</td><td data-label="Где">Операционные результаты, наш.дом.рф, МСФО</td></tr>
+        <tr><th>IT и истории роста</th><td data-label="По привычке смотрят">P/E</td><td data-label="Смотреть надо">Рост выручки; что вычли из скорректированной EBITDA (выплаты на основе акций); капитализация разработки; размытие от опционных программ</td><td data-label="Где">МСФО: примечания о выплатах на основе акций и НМА</td></tr>
+        <tr><th>Холдинги</th><td data-label="По привычке смотрят">P/E по консолидации</td><td data-label="Смотреть надо">Дисконт к сумме частей, долг корпоративного центра, дивиденды от «дочек»</td><td data-label="Где">РСБУ материнской (2310, 1370), МСФО</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Флаги для акций</h4>
+  <div class="cols c2">
+    <div class="card stop">
+      <h4>Не покупаю или выхожу</h4>
+      <ul>
+        <li>Допэмиссия или SPO, которые размывают долю без понятной цели или с дисконтом для узкого круга</li>
+        <li>Аудитор: мнение с оговоркой, отказ от мнения, смена без объяснений; задержка отчётности</li>
+        <li>Деньги уходят связанным сторонам: растут займы выданные (1170, 1240), авансы, сделки со связанными сторонами</li>
+        <li>Решения против миноритариев: выкуп или делистинг по заниженной цене, невыгодный обмен</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>Смотрю внимательно и считаю</h4>
+      <ul>
+        <li>Дивиденд больше FCF второй год подряд</li>
+        <li>Операционный поток систематически ниже прибыли</li>
+        <li>«Скорректированные» показатели растут, отчётные падают</li>
+        <li>Раскрытие сокращается: пропали сегменты, операционные данные, расшифровка долга</li>
+        <li>Процентные расходы растут быстрее EBITDA</li>
+        <li>Дивиденд урезан при выполненных условиях дивполитики</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 id="stock-case"><span class="step-n">46:00–53:00 · 7 мин · практика</span>Задача: ПАО «Василёк»</h3>
+  <p>Учебная компания, все цифры условные. Производитель продуктов питания. ПАО «Василёк» — холдинг, операционный бизнес в «дочках». Акция стоит <b>90 ₽</b>, акций <b>1 000 млн</b>. Дивполитика: не менее 50% скорректированной чистой прибыли по МСФО. Для упражнения примем доходность ОФЗ <b>14%</b>.</p>
+  <div class="cols c2">
+    <div class="tbl" style="margin:0">
+      <table class="form">
+        <caption>МСФО, прибыль или убыток, млрд ₽</caption>
+        <thead><tr><th>Показатель</th><th>За год</th></tr></thead>
+        <tbody>
+          <tr><td>Выручка (рост за год +10%)</td><td class="num">120,0</td></tr>
+          <tr><td>Скорректированная EBITDA (данные компании)</td><td class="num">24,0</td></tr>
+          <tr><td class="sub">в т. ч. эффект МСФО 16</td><td class="num">1,5</td></tr>
+          <tr><td>Амортизация</td><td class="num">(6,0)</td></tr>
+          <tr><td>Процентные расходы</td><td class="num">(5,0)</td></tr>
+          <tr><td>Курсовые разницы и обесценение</td><td class="num">(2,0)</td></tr>
+          <tr><td>Налог на прибыль, 25%</td><td class="num">(2,75)</td></tr>
+          <tr class="sum"><td>Чистая прибыль</td><td class="num">8,25</td></tr>
+          <tr><td>Скорректированная чистая прибыль (данные компании)</td><td class="num">9,75</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tbl" style="margin:0">
+      <table class="form">
+        <caption>МСФО, движение денег, млрд ₽</caption>
+        <thead><tr><th>Показатель</th><th>За год</th></tr></thead>
+        <tbody>
+          <tr class="sum"><td>Чистый поток от операционной деятельности</td><td class="num">18,9</td></tr>
+          <tr><td>Капитальные затраты</td><td class="num">(9,0)</td></tr>
+          <tr><td>Уплаченные проценты (в финансовой деятельности)</td><td class="num">(5,2)</td></tr>
+          <tr><td>Погашение обязательств по аренде (в финансовой деятельности)</td><td class="num">(1,5)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="cols c2">
+    <div class="tbl" style="margin:0">
+      <table class="form">
+        <caption>МСФО, финансовое положение, млрд ₽</caption>
+        <thead><tr><th>Показатель</th><th>Конец года</th><th>Начало года</th></tr></thead>
+        <tbody>
+          <tr><td>Денежные средства</td><td class="num">6,0</td><td class="num">5,1</td></tr>
+          <tr><td>Дебиторская задолженность</td><td class="num">18,4</td><td class="num">16,0</td></tr>
+          <tr><td>Кредиты и займы (60% по плавающей ставке)</td><td class="num">40,0</td><td class="num">37,0</td></tr>
+          <tr><td>Обязательства по аренде</td><td class="num">10,0</td><td class="num">9,6</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tbl" style="margin:0">
+      <table class="form">
+        <caption>РСБУ материнской компании, млрд ₽</caption>
+        <thead><tr><th>Показатель</th><th>Код</th><th>Значение</th></tr></thead>
+        <tbody>
+          <tr><td>Доходы от участия в других организациях</td><td class="code">2310</td><td class="num">2,0</td></tr>
+          <tr><td>Чистая прибыль</td><td class="code">2400</td><td class="num">1,6</td></tr>
+          <tr><td>Нераспределённая прибыль на конец года</td><td class="code">1370</td><td class="num">3,5</td></tr>
+        </tbody>
+      </table>
+      <p class="small">Чистые активы выше уставного капитала и резервного фонда: ограничение ст. 43 не срабатывает.</p>
+    </div>
+  </div>
+  <h4>Задания</h4>
+  <ol class="tasks">
+    <li>Настоящая ли прибыль? Сравните операционный поток с прибылью и посчитайте FCF.</li>
+    <li>Посчитайте чистый долг / EBITDA сопоставимо: с арендой и без. Какую ошибку легко сделать?</li>
+    <li>Дойдут ли деньги: сколько обещает дивполитика, сколько покрыто FCF, сколько юридически может заплатить материнская компания?</li>
+    <li>Сколько я плачу: P/E и E/P против ОФЗ, EV/EBITDA, FCF yield, дивидендная доходность.</li>
+    <li>Вердикт по трём принципам: цена, катализатор, рост.</li>
+  </ol>
+  <p class="note"><span class="note-tag">Лектору</span>Задания 1–2 решайте вместе с залом за две минуты, задания 3–4 — в парах, три минуты. На вердикт оставьте две минуты и попросите двух-трёх человек сформулировать его одной фразой.</p>
+
+  <details>
+    <summary>Ответ 1. Настоящая ли прибыль</summary>
+    <div class="ans">
+      <p>Операционный поток после процентов: 18,9 − 5,2 = <b>13,7 млрд</b>. Это 1,4 скорректированной прибыли (9,75): прибыль деньгами подтверждается.</p>
+      <p>Но после капекса и аренды остаётся FCF = 13,7 − 9,0 − 1,5 = <b>3,2 млрд</b>. Это всё, что можно раздать без нового долга.</p>
+      <p>Дебиторка выросла на 15% при росте выручки на 10%. Небольшой, но флаг.</p>
+    </div>
+  </details>
+  <details>
+    <summary>Ответ 2. Долг</summary>
+    <div class="ans">
+      <p>С арендой: (40 + 10 − 6) / 24 = 44 / 24 = <b>1,8</b>. Без аренды: (40 − 6) / (24 − 1,5) = 34 / 22,5 = <b>1,5</b>.</p>
+      <p>Ошибка: взять долг без аренды и EBITDA с арендой. Получится 34 / 24 = 1,4, и нагрузка выглядит ниже, чем есть.</p>
+      <p>Нагрузка умеренная, покрытие процентов 24 / 5,0 = 4,8 — норма. 60% долга плавающие (24 млрд): каждый +1 п. п. ставки отнимает 0,24 млрд прибыли до налога.</p>
+    </div>
+  </details>
+  <details>
+    <summary>Ответ 3. Дойдут ли деньги до акционера</summary>
+    <div class="ans">
+      <p>По политике: 50% × 9,75 = <b>4,875 млрд</b>, или 4,88 ₽ на акцию.</p>
+      <p>FCF 3,2 млрд покрывает 66% этой суммы. Остальное пришлось бы платить в долг.</p>
+      <p>Юридический потолок: нераспределённая прибыль материнской компании <b>3,5 млрд</b>, то есть 3,5 ₽ на акцию, если «дочки» до собрания не перечислят наверх дополнительные дивиденды. Реалистичный дивиденд — около <b>3,2–3,5 ₽</b>.</p>
+    </div>
+  </details>
+  <details>
+    <summary>Ответ 4. Сколько я плачу</summary>
+    <div class="ans">
+      <p>Капитализация: 90 ₽ × 1 000 млн = <b>90 млрд</b>.</p>
+      <p>P/E = 90 / 9,75 = <b>9,2</b> (по отчётной прибыли 90 / 8,25 = 10,9). E/P = <b>10,8%</b> против ОФЗ 14%: вы платите за рост.</p>
+      <p>EV = 90 + 44 = 134; EV/EBITDA = <b>5,6</b>.</p>
+      <p>FCF yield = 3,2 / 90 = <b>3,6%</b>. Дивдоходность: по политике 5,4%, реалистично <b>3,6–3,9%</b>.</p>
+    </div>
+  </details>
+  <details>
+    <summary>Ответ 5. Вердикт</summary>
+    <div class="ans">
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Принцип</th><th>Что видим</th></tr></thead>
+          <tbody>
+            <tr><td>Цена</td><td class="alarm">Доходность прибыли 10,8% ниже ОФЗ, FCF yield 3,6%. Не дёшево.</td></tr>
+            <tr><td>Катализатор</td><td class="alarm">Обещанный дивиденд не покрыт ни FCF, ни прибылью материнской компании.</td></tr>
+            <tr><td>Рост</td><td>Выручка +10% без ускорения. За такой рост премию к ОФЗ платить рано.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Бизнес устойчивый: долг умеренный, прибыль подтверждена операционным потоком. Но по 90 ₽ вы платите за дивиденды и рост, которых отчётность пока не подтверждает. <b>Сейчас не покупать.</b></p>
+      <p><b>Что изменит вывод:</b> конец капекс-цикла (капекс 9 → 5 млрд даёт FCF 7,2 и покрывает дивиденд по политике) или снижение ставки (60% долга плавающий). Оба события — катализаторы, за которыми стоит следить в отчётности следующих кварталов.</p>
+    </div>
+  </details>
+</section>
+
+<!-- ============ 5. МОНИТОРИНГ ============ -->
+<section id="monitor" class="block">
+  <header class="bh">
+    <p class="tc-line"><span class="tc">53:00–58:00</span><span class="dur">5 мин</span></p>
+    <h2>Сигналы между отчётами</h2>
+  </header>
+  <p>Отчётность выходит раз в полгода. Решения принимаются каждый день. Все источники ниже бесплатные, кроме СПАРК.</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Источник</th><th>Что смотреть</th><th>Мин</th></tr></thead>
+      <tbody>
+        <tr class="grp"><th colspan="3">Отчётность</th></tr>
+        <tr><td><b>ГИР БО</b><br><span class="mono small">bo.nalog.gov.ru</span></td><td>Годовая РСБУ с пояснениями и аудиторским заключением</td><td class="num">4</td></tr>
+        <tr><td><b>Центр раскрытия, Интерфакс</b><br><span class="mono small">e-disclosure.ru</span></td><td>Существенные факты, промежуточная отчётность, задержки и отказы в раскрытии</td><td class="num">3</td></tr>
+        <tr><td><b>Сайт компании, раздел для инвесторов</b></td><td>МСФО, презентации, дивполитика, операционные результаты</td><td class="num">5</td></tr>
+        <tr class="grp"><th colspan="3">Юрлицо и риски</th></tr>
+        <tr><td><b>Прозрачный бизнес</b><br><span class="mono small">pb.nalog.ru</span></td><td>Налоговая задолженность, недостоверные сведения, дисквалификация</td><td class="num">3</td></tr>
+        <tr><td><b>Сервис ФНС по приостановлениям</b><br><span class="mono small">service.nalog.ru, «Банкинформ»</span></td><td>Блокировка расчётных счетов по ИНН и БИК</td><td class="num">2</td></tr>
+        <tr><td><b>Картотека арбитражных дел</b><br><span class="mono small">kad.arbitr.ru</span></td><td>Крупные иски, особенно от налоговой, и дела о банкротстве</td><td class="num">3</td></tr>
+        <tr><td><b>Федресурс</b><br><span class="mono small">fedresurs.ru</span></td><td>Договоры лизинга и их прекращение, существенные факты</td><td class="num">3</td></tr>
+        <tr><td><b>Реестр залогов</b><br><span class="mono small">reestr-zalogov.ru</span></td><td>Что из активов уже в залоге</td><td class="num">2</td></tr>
+        <tr><td><b>Rusprofile</b><br><span class="mono small">rusprofile.ru</span></td><td>Связанные компании, учредители, отчётность, базовые риски</td><td class="num">4</td></tr>
+        <tr><td><b>СПАРК-Интерфакс</b> (платно)<br><span class="mono small">spark-interfax.ru</span></td><td>То же, глубже и с историей</td><td class="num">4</td></tr>
+        <tr class="grp"><th colspan="3">Сектор</th></tr>
+        <tr><td><b>ЕИС закупок</b><br><span class="mono small">zakupki.gov.ru</span></td><td>Госконтракты по ИНН, портфель заказов</td><td class="num">3</td></tr>
+        <tr><td><b>наш.дом.рф</b></td><td>Стройготовность, распроданность, переносы ввода</td><td class="num">3</td></tr>
+        <tr class="grp"><th colspan="3">Рейтинги</th></tr>
+        <tr><td><b>АКРА, Эксперт РА, НКР, НРА</b><br><span class="mono small">acra-ratings.ru · raexpert.ru · ratings.ru · ra-national.ru</span></td><td>Рейтинговые действия и сам текст релиза. У Эксперт РА ещё рэнкинги лизинга и факторинга</td><td class="num">1–3</td></tr>
+        <tr class="grp"><th colspan="3">Рынок</th></tr>
+        <tr><td><b>Мосбиржа</b><br><span class="mono small">moex.com</span></td><td>Размещения, объёмы, режим торгов, планки; кривая доходности ОФЗ</td><td class="num">2</td></tr>
+        <tr><td><b>Smart-lab</b><br><span class="mono small">smart-lab.ru</span></td><td>Календарь купонов и погашений; таблицы показателей по МСФО для акций</td><td class="num">2</td></tr>
+        <tr><td><b>Bond Research, Bondana, Квик</b></td><td>Параметры выпусков, календарь выплат по своим бумагам, стакан и цены</td><td class="num">2–3</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small">В Telegram есть боты по блокировкам счетов и выплатам купонов. По опыту автора методички работают нормально.</p>
+  <h3>Регламент</h3>
+  <div class="cols c3">
+    <div class="card"><h4>Раз в неделю, 20 минут</h4><p>Новости по своим эмитентам, боты, первичные размещения.</p></div>
+    <div class="card"><h4>Раз в квартал</h4><p>Новая отчётность по каждой бумаге. По акциям ещё операционные результаты и решения советов директоров о дивидендах.</p></div>
+    <div class="card stop"><h4>В день новости</h4><p>Блокировка счетов, сорванное размещение, отзыв рейтинга — смотрим сразу.</p></div>
+  </div>
+</section>
+
+<!-- ============ 6. ИТОГ ============ -->
+<section id="outro" class="block">
+  <header class="bh">
+    <p class="tc-line"><span class="tc">58:00–60:00</span><span class="dur">2 мин</span></p>
+    <h2>Итог и задание</h2>
+  </header>
+  <ol>
+    <li><b>Облигация:</b> за счёт чего мне заплатят в ближайшие полгода? Ответ ищем в трёх местах: операционный поток, новый займ, акционер.</li>
+    <li><b>Акция:</b> настоящая ли прибыль, дойдёт ли она до меня и сколько я за неё плачу?</li>
+    <li><b>РСБУ</b> рассказывает про юрлицо и закон, в том числе про дивиденды. <b>МСФО</b> рассказывает про группу и бизнес. Нужны оба отчёта.</li>
+  </ol>
+  <div class="callout">
+    <p class="tag">Домашнее задание</p>
+    <p>Возьмите одну облигацию и одну акцию из своего портфеля. Пройдите чек-листы ниже, посчитайте показатели в калькуляторах и сформулируйте вывод одной фразой: «держу, потому что…» или «выхожу, потому что…».</p>
+  </div>
+</section>
+
+<!-- ============ ПРИЛОЖЕНИЯ ============ -->
+<section id="checklists" class="block">
+  <header class="bh">
+    <p class="tc-line"><span class="tc">Приложение 1</span></p>
+    <h2>Чек-листы</h2>
+  </header>
+  <div class="cols c2">
+    <div data-kind="bond">
+      <h3 style="margin-top:0">Облигация</h3>
+      <h4>До покупки <span class="count" data-for="cb1"></span></h4>
+      <ul class="check" id="cb1">
+        <li><label><input type="checkbox" id="cb1-1"><span>Были ли у компании реструктуризации или дефолты раньше</span></label></li>
+        <li><label><input type="checkbox" id="cb1-2"><span>Кто акционеры и кто материнская компания, чей рейтинг я смотрю</span></label></li>
+        <li><label><input type="checkbox" id="cb1-3"><span>Сколько денег на счетах и сколько платить в ближайшие полгода</span></label></li>
+        <li><label><input type="checkbox" id="cb1-4"><span>Откуда возьмётся разница: поток, займ или акционер</span></label></li>
+        <li><label><input type="checkbox" id="cb1-5"><span>Релевантна ли эта отчётность или это часть группы</span></label></li>
+        <li><label><input type="checkbox" id="cb1-6"><span>Сделал ли я отраслевую поправку</span></label></li>
+        <li><label><input type="checkbox" id="cb1-7"><span>Проверил ли фактически уплаченные проценты, а не только отчёт о финансовых результатах</span></label></li>
+        <li><label><input type="checkbox" id="cb1-8"><span>Какая доля этой бумаги в портфеле и не превышает ли она лимит</span></label></li>
+        <li><label><input type="checkbox" id="cb1-9"><span>Записал ли я события, при которых выхожу не раздумывая</span></label></li>
+      </ul>
+      <h4>Перед продажей просевшей бумаги <span class="count" data-for="cb2"></span></h4>
+      <ul class="check" id="cb2">
+        <li><label><input type="checkbox" id="cb2-1"><span>Изменились ли финансовые показатели за последний год</span></label></li>
+        <li><label><input type="checkbox" id="cb2-2"><span>Изменился ли её рынок и спрос на продукт</span></label></li>
+        <li><label><input type="checkbox" id="cb2-3"><span>Есть ли погашения в ближайшие полгода</span></label></li>
+        <li><label><input type="checkbox" id="cb2-4"><span>Жду ли я, что рынок ВДО станет ещё жёстче</span></label></li>
+      </ul>
+      <p class="small">Если на все четыре ответ «нет», смысла продавать нет. Если хотя бы один «да», надо считать.</p>
+    </div>
+    <div data-kind="stock">
+      <h3 style="margin-top:0">Акция</h3>
+      <h4>До покупки <span class="count" data-for="cs1"></span></h4>
+      <ul class="check" id="cs1">
+        <li><label><input type="checkbox" id="cs1-1"><span>Понимаю, кто контролирует компанию и как она обходилась с миноритариями</span></label></li>
+        <li><label><input type="checkbox" id="cs1-2"><span>Знаю, что покупаю: обыкновенную или привилегированную; для префа прочитал устав</span></label></li>
+        <li><label><input type="checkbox" id="cs1-3"><span>Проверил, холдинг это или операционная компания, и откуда у материнской деньги на дивиденды (2310, 1370)</span></label></li>
+        <li><label><input type="checkbox" id="cs1-4"><span>Посчитал чистый долг / EBITDA сопоставимо и долю плавающей ставки</span></label></li>
+        <li><label><input type="checkbox" id="cs1-5"><span>Сравнил операционный поток с прибылью за 2–3 года</span></label></li>
+        <li><label><input type="checkbox" id="cs1-6"><span>Посчитал FCF и сравнил с дивидендом по дивполитике</span></label></li>
+        <li><label><input type="checkbox" id="cs1-7"><span>Проверил разовые статьи и что именно «скорректировано»</span></label></li>
+        <li><label><input type="checkbox" id="cs1-8"><span>Сделал отраслевую поправку</span></label></li>
+        <li><label><input type="checkbox" id="cs1-9"><span>Сравнил P/E, EV/EBITDA и FCF yield с историей, аналогами и ОФЗ</span></label></li>
+        <li><label><input type="checkbox" id="cs1-10"><span>Назвал катализатор и срок, к которому он должен сработать</span></label></li>
+        <li><label><input type="checkbox" id="cs1-11"><span>Записал события, при которых продаю не раздумывая</span></label></li>
+      </ul>
+      <h4>Перед продажей просевшей акции <span class="count" data-for="cs2"></span></h4>
+      <ul class="check" id="cs2">
+        <li><label><input type="checkbox" id="cs2-1"><span>Изменились ли прибыль и FCF или только цена</span></label></li>
+        <li><label><input type="checkbox" id="cs2-2"><span>Сохранилась ли способность платить дивиденды: FCF и РСБУ материнской</span></label></li>
+        <li><label><input type="checkbox" id="cs2-3"><span>Не исчез ли катализатор</span></label></li>
+        <li><label><input type="checkbox" id="cs2-4"><span>Не было ли размытия или решений против миноритариев</span></label></li>
+      </ul>
+      <p class="small">Если поменялась только цена, а отчётность и катализатор те же, это не повод продавать. Если сломались катализатор или качество прибыли, продавайте, не дожидаясь цены покупки.</p>
+    </div>
+  </div>
+</section>
+
+<section id="calc" class="block">
+  <header class="bh">
+    <p class="tc-line"><span class="tc">Приложение 2</span></p>
+    <h2>Калькуляторы</h2>
+  </header>
+  <p>Подставьте строки своей бумаги. По умолчанию введены данные учебных задач. Пороги взяты из лекции и остаются ориентирами.</p>
+  <div class="calcs">
+    <form class="calc" id="calc-bond" data-kind="bond" novalidate>
+      <h3>Облигация · РСБУ · млн ₽</h3>
+      <div class="fields">
+        <label class="field" for="b-cash"><span>Деньги на счетах <span class="code">1250</span></span><input id="b-cash" type="text" inputmode="decimal" value="180"></label>
+        <label class="field" for="b-pay6"><span>Выплаты за 6 месяцев <span class="code">календарь</span></span><input id="b-pay6" type="text" inputmode="decimal" value="970"></label>
+        <label class="field" for="b-lt"><span>Заёмные, долгосрочные <span class="code">1410</span></span><input id="b-lt" type="text" inputmode="decimal" value="900"></label>
+        <label class="field" for="b-st"><span>Заёмные, краткосрочные <span class="code">1510</span></span><input id="b-st" type="text" inputmode="decimal" value="1050"></label>
+        <label class="field" for="b-fact"><span>Факторинг и долг вне строк <span class="code">пояснения</span></span><input id="b-fact" type="text" inputmode="decimal" value="900"></label>
+        <label class="field" for="b-op"><span>Прибыль от продаж <span class="code">2200</span></span><input id="b-op" type="text" inputmode="decimal" value="620"></label>
+        <label class="field" for="b-dep"><span>Амортизация <span class="code">пояснения</span></span><input id="b-dep" type="text" inputmode="decimal" value="130"></label>
+        <label class="field" for="b-int"><span>Проценты к уплате <span class="code">2330</span></span><input id="b-int" type="text" inputmode="decimal" value="290"></label>
+        <label class="field" for="b-cfo"><span>Сальдо текущих операций <span class="code">4100</span></span><input id="b-cfo" type="text" inputmode="decimal" value="210"></label>
+        <label class="field" for="b-ip"><span>Проценты уплаченные <span class="code">4123</span></span><input id="b-ip" type="text" inputmode="decimal" value="250"></label>
+        <label class="field" for="b-ic"><span>Проценты капитализированные <span class="code">4224</span></span><input id="b-ic" type="text" inputmode="decimal" value="160"></label>
+        <label class="field" for="b-capex"><span>Капекс <span class="code">4221</span></span><input id="b-capex" type="text" inputmode="decimal" value="380"></label>
+        <label class="field" for="b-ytm"><span>Доходность к погашению, % <span class="code">рынок</span></span><input id="b-ytm" type="text" inputmode="decimal" value="31"></label>
+      </div>
+      <div class="out" aria-live="polite"><dl id="b-out"></dl></div>
+      <button type="reset" class="btn">Вернуть пример</button>
+    </form>
+
+    <form class="calc" id="calc-stock" data-kind="stock" novalidate>
+      <h3>Акция · МСФО и РСБУ материнской · млрд ₽</h3>
+      <div class="fields">
+        <label class="field" for="s-price"><span>Цена акции, ₽ <span class="code">рынок</span></span><input id="s-price" type="text" inputmode="decimal" value="90"></label>
+        <label class="field" for="s-shares"><span>Акций в обращении, млн <span class="code">без квазиказначейских</span></span><input id="s-shares" type="text" inputmode="decimal" value="1000"></label>
+        <label class="field" for="s-ni"><span>Чистая прибыль, скорр. <span class="code">МСФО</span></span><input id="s-ni" type="text" inputmode="decimal" value="9,75"></label>
+        <label class="field" for="s-ebitda"><span>EBITDA <span class="code">МСФО</span></span><input id="s-ebitda" type="text" inputmode="decimal" value="24"></label>
+        <label class="field" for="s-f16"><span>в т. ч. эффект МСФО 16 <span class="code">примечания</span></span><input id="s-f16" type="text" inputmode="decimal" value="1,5"></label>
+        <label class="field" for="s-debt"><span>Кредиты и займы <span class="code">МСФО</span></span><input id="s-debt" type="text" inputmode="decimal" value="40"></label>
+        <label class="field" for="s-lease"><span>Обязательства по аренде <span class="code">МСФО</span></span><input id="s-lease" type="text" inputmode="decimal" value="10"></label>
+        <label class="field" for="s-cash"><span>Денежные средства <span class="code">МСФО</span></span><input id="s-cash" type="text" inputmode="decimal" value="6"></label>
+        <label class="field" for="s-cfo"><span>Операционный поток <span class="code">МСФО</span></span><input id="s-cfo" type="text" inputmode="decimal" value="18,9"></label>
+        <label class="field" for="s-intfin"><span>Проценты в финансовом потоке <span class="code">0, если в операционном</span></span><input id="s-intfin" type="text" inputmode="decimal" value="5,2"></label>
+        <label class="field" for="s-capex"><span>Капекс <span class="code">МСФО</span></span><input id="s-capex" type="text" inputmode="decimal" value="9"></label>
+        <label class="field" for="s-lpay"><span>Платежи по аренде <span class="code">МСФО</span></span><input id="s-lpay" type="text" inputmode="decimal" value="1,5"></label>
+        <label class="field" for="s-payout"><span>Доля прибыли на дивиденды, % <span class="code">дивполитика</span></span><input id="s-payout" type="text" inputmode="decimal" value="50"></label>
+        <label class="field" for="s-re"><span>Нераспределённая прибыль материнской <span class="code">1370</span></span><input id="s-re" type="text" inputmode="decimal" value="3,5"></label>
+        <label class="field" for="s-ofz"><span>Доходность ОФЗ, % <span class="code">рынок</span></span><input id="s-ofz" type="text" inputmode="decimal" value="14"></label>
+      </div>
+      <div class="out" aria-live="polite"><dl id="s-out"></dl></div>
+      <button type="reset" class="btn">Вернуть пример</button>
+    </form>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>Учебный материал, не индивидуальная инвестиционная рекомендация. ООО «Ромашка», ПАО «Василёк» и все цифры в задачах условные. Пороговые значения — ориентиры, а не правила.</p>
+    <p>Шаги по облигациям, отраслевые нормы, лимиты, источники и разбор Евротранса — по методичке «Как проверить эмитента ВДО за 30 минут». Блок по акциям построен по той же схеме на отчётности по МСФО и РСБУ.</p>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var page = document.getElementById('page');
+
+  /* Реплики лектора */
+  var btn = document.getElementById('toggle-notes');
+  function setNotes(hidden){
+    page.classList.toggle('hide-notes', hidden);
+    btn.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+    btn.textContent = hidden ? 'Показать реплики лектора' : 'Скрыть реплики лектора';
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('lecture-notes-hidden'); } catch(e) {}
+  setNotes(saved === '1');
+  btn.addEventListener('click', function(){
+    var hidden = !page.classList.contains('hide-notes');
+    setNotes(hidden);
+    try { localStorage.setItem('lecture-notes-hidden', hidden ? '1' : '0'); } catch(e) {}
+  });
+
+  /* Текущий блок в хронометраже */
+  var links = Array.prototype.slice.call(document.querySelectorAll('.rail a[href^="#"]'));
+  var byId = {};
+  links.forEach(function(a){ byId[a.getAttribute('href').slice(1)] = a; });
+  if ('IntersectionObserver' in window) {
+    var targets = Object.keys(byId).map(function(id){ return document.getElementById(id); }).filter(Boolean);
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (en.isIntersecting) {
+          links.forEach(function(a){ a.removeAttribute('aria-current'); });
+          var a = byId[en.target.id];
+          if (a) a.setAttribute('aria-current', 'true');
+        }
+      });
+    }, { rootMargin: '-35% 0px -60% 0px' });
+    targets.forEach(function(t){ io.observe(t); });
+  }
+
+  /* Счётчики чек-листов */
+  function updateCount(list){
+    var boxes = list.querySelectorAll('input[type="checkbox"]');
+    var done = 0;
+    boxes.forEach(function(b){ if (b.checked) done++; });
+    var c = document.querySelector('.count[data-for="' + list.id + '"]');
+    if (c) c.textContent = done + ' из ' + boxes.length;
+  }
+  document.querySelectorAll('.check').forEach(function(list){
+    updateCount(list);
+    list.addEventListener('change', function(){ updateCount(list); });
+  });
+
+  /* Калькуляторы */
+  function $(id){ return document.getElementById(id); }
+  function val(id){
+    var s = ($(id).value || '').replace(/[\s ]/g, '').replace(',', '.');
+    if (s === '') return NaN;
+    var n = Number(s);
+    return isFinite(n) ? n : NaN;
+  }
+  function ok(n){ return typeof n === 'number' && isFinite(n); }
+  function dv(a, b){ return (ok(a) && ok(b) && b !== 0) ? a / b : NaN; }
+  function fmt(n, d){
+    if (!ok(n)) return '—';
+    return n.toLocaleString('ru-RU', { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+  function chip(level, text){ return '<span class="chip ' + level + '">' + text + '</span>'; }
+  function row(label, value, ch, hint){
+    return '<div class="row"><dt>' + label + (hint ? '<small>' + hint + '</small>' : '') + '</dt><dd><span class="v">' + value + '</span>' + (ch || '') + '</dd></div>';
+  }
+  function band(x, goodMax, warnMax){
+    if (!ok(x)) return '';
+    if (x <= goodMax) return chip('good', 'норма');
+    if (x <= warnMax) return chip('warn', 'внимание');
+    return chip('bad', 'тревога');
+  }
+  function bandUp(x, goodMin, warnMin, badText){
+    if (!ok(x)) return '';
+    if (x >= goodMin) return chip('good', 'норма');
+    if (x >= warnMin) return chip('warn', 'внимание');
+    return chip('bad', badText || 'тревога');
+  }
+
+  function calcBond(){
+    var cash = val('b-cash'), pay = val('b-pay6'), lt = val('b-lt'), st = val('b-st'), fact = val('b-fact');
+    var op = val('b-op'), dep = val('b-dep'), intr = val('b-int');
+    var cfo = val('b-cfo'), ip = val('b-ip'), ic = val('b-ic'), capex = val('b-capex'), ytm = val('b-ytm');
+    var h = '';
+
+    var gap = pay - cash;
+    var gapCh = !ok(gap) ? '' : gap <= 0 ? chip('good', 'денег хватает') : chip(gap > cash ? 'bad' : 'warn', 'откуда разница?');
+    h += row('Разрыв на полгода', ok(gap) ? (gap <= 0 ? 'нет' : fmt(gap, 0) + ' млн') : '—', gapCh, 'выплаты − 1250');
+    h += row('Деньги покрывают выплаты', ok(dv(cash, pay)) ? fmt(dv(cash, pay) * 100, 0) + '%' : '—', '', '1250 / выплаты');
+
+    var ebitda = op + dep;
+    h += row('EBITDA', ok(ebitda) ? fmt(ebitda, 0) + ' млн' : '—', ok(ebitda) && ebitda <= 0 ? chip('bad', 'нет EBITDA') : '', '2200 + амортизация');
+
+    var nd = lt + st - cash;
+    var ndE = ebitda > 0 ? dv(nd, ebitda) : NaN;
+    var ndF = ebitda > 0 ? dv(nd + fact, ebitda) : NaN;
+    var ndCh = function(x){ return ok(x) && x < 0 ? chip('good', 'денег больше долга') : band(x, 2.5, 3.5); };
+    h += row('Чистый долг / EBITDA', fmt(ndE, 1), ndCh(ndE), 'как в презентации');
+    h += row('То же с факторингом', fmt(ndF, 1), ndCh(ndF), 'пороги производства: 2,5 и 3,5');
+
+    var covPL = dv(ebitda, intr);
+    h += row('Покрытие процентов по отчёту', ok(covPL) ? fmt(covPL, 1) + ' раза' : '—', bandUp(covPL, 3, 1.5), 'EBITDA / 2330');
+
+    var covCash = dv(cfo + ip, ip + ic);
+    h += row('Покрытие процентов деньгами', ok(covCash) ? fmt(covCash, 1) + ' раза' : '—', bandUp(covCash, 1.5, 1, 'долг новым долгом'), '(4100 + 4123) / (4123 + 4224)');
+
+    var fcf = cfo - capex - ic;
+    var fcfCh = !ok(fcf) ? '' : fcf >= 0 ? chip('good', 'плюс') : chip('bad', 'финансируется долгом');
+    h += row('Свободный денежный поток', ok(fcf) ? fmt(fcf, 0) + ' млн' : '—', fcfCh, '4100 − 4221 − 4224');
+
+    var yCh = !ok(ytm) ? '' : ytm <= 25 ? chip('good', 'норма для ВДО') : ytm <= 30 ? chip('warn', 'край') : chip('bad', 'дистресс');
+    h += row('Доходность к погашению', ok(ytm) ? fmt(ytm, 1) + '%' : '—', yCh, 'ориентиры методички: 25 и 30%');
+
+    $('b-out').innerHTML = h;
+  }
+
+  function calcStock(){
+    var price = val('s-price'), shares = val('s-shares'), ni = val('s-ni'), ebitda = val('s-ebitda'), f16 = val('s-f16');
+    var debt = val('s-debt'), lease = val('s-lease'), cash = val('s-cash');
+    var cfo = val('s-cfo'), intfin = val('s-intfin'), capex = val('s-capex'), lpay = val('s-lpay');
+    var payout = val('s-payout'), re = val('s-re'), ofz = val('s-ofz');
+    var h = '';
+
+    var cap = price * shares / 1000;
+    h += row('Капитализация', ok(cap) ? fmt(cap, 1) + ' млрд' : '—', '', 'цена × акции');
+
+    var pe = ni > 0 ? dv(cap, ni) : NaN;
+    h += row('P/E', fmt(pe, 1), ok(ni) && ni <= 0 ? chip('bad', 'убыток') : '', 'капитализация / прибыль');
+    var ey = dv(ni, cap) * 100;
+    var eyCh = !ok(ey) || !ok(ofz) ? '' : ey >= ofz ? chip('good', 'выше ОФЗ') : chip('warn', 'платите за рост');
+    h += row('Доходность прибыли E/P', ok(ey) ? fmt(ey, 1) + '%' : '—', eyCh, 'сравнить с ОФЗ ' + (ok(ofz) ? fmt(ofz, 1) + '%' : ''));
+
+    var nd = debt + lease - cash;
+    var ev = cap + nd;
+    h += row('EV/EBITDA', ebitda > 0 ? fmt(dv(ev, ebitda), 1) : '—', chip('info', 'с историей и аналогами'), '(капитализация + долг с арендой) / EBITDA');
+
+    var ndCh = function(x){ return ok(x) && x < 0 ? chip('good', 'денег больше долга') : band(x, 1.5, 3); };
+    var nd1 = ebitda > 0 ? dv(nd, ebitda) : NaN;
+    var e2 = ebitda - f16;
+    var nd2 = e2 > 0 ? dv(debt - cash, e2) : NaN;
+    h += row('Чистый долг / EBITDA с арендой', fmt(nd1, 1), ndCh(nd1), '(долг + аренда − деньги) / EBITDA');
+    h += row('То же без аренды', fmt(nd2, 1), ndCh(nd2), '(долг − деньги) / (EBITDA − МСФО 16)');
+
+    var cfoNet = cfo - intfin;
+    var q = ni > 0 ? dv(cfoNet, ni) : NaN;
+    h += row('Операционный поток после процентов / прибыль', fmt(q, 1), bandUp(q, 1, 0.7, 'прибыль «бумажная»'), 'за 2–3 года надёжнее');
+
+    var fcf = cfoNet - capex - lpay;
+    var fcfCh = !ok(fcf) ? '' : fcf >= 0 ? '' : chip('bad', 'FCF отрицательный');
+    h += row('FCF', ok(fcf) ? fmt(fcf, 1) + ' млрд' : '—', fcfCh, 'поток − проценты − капекс − аренда');
+    h += row('FCF yield', ok(dv(fcf, cap)) ? fmt(dv(fcf, cap) * 100, 1) + '%' : '—', '', 'FCF / капитализация');
+
+    var div = ni * payout / 100;
+    var dps = dv(div * 1000, shares);
+    var dy = dv(dps, price) * 100;
+    h += row('Дивиденд по политике', ok(dps) ? fmt(dps, 2) + ' ₽ · ' + fmt(dy, 1) + '%' : '—', '', ok(div) ? fmt(div, 2) + ' млрд на всех' : '');
+
+    var cover = div > 0 ? dv(fcf, div) : NaN;
+    h += row('FCF / дивиденд', fmt(cover, 2), bandUp(cover, 1, 0.7, 'платят в долг'), 'меньше 1 — часть дивиденда в долг');
+
+    var real = Math.min(div, re);
+    var rdps = dv(real * 1000, shares);
+    var reCh = !ok(div) || !ok(re) ? '' : div > re ? chip('bad', 'упирается в РСБУ') : chip('good', 'по РСБУ хватает');
+    h += row('Потолок по РСБУ материнской', ok(dv(re * 1000, shares)) ? fmt(dv(re * 1000, shares), 2) + ' ₽' : '—', reCh, '1370 / акции');
+    h += row('Реалистичная дивдоходность', ok(rdps) && ok(price) ? fmt(dv(rdps, price) * 100, 1) + '%' : '—', '', 'меньшее из политики и 1370');
+
+    $('s-out').innerHTML = h;
+  }
+
+  var bondForm = $('calc-bond'), stockForm = $('calc-stock');
+  bondForm.addEventListener('input', calcBond);
+  stockForm.addEventListener('input', calcStock);
+  bondForm.addEventListener('reset', function(){ setTimeout(calcBond, 0); });
+  stockForm.addEventListener('reset', function(){ setTimeout(calcStock, 0); });
+  bondForm.addEventListener('submit', function(e){ e.preventDefault(); });
+  stockForm.addEventListener('submit', function(e){ e.preventDefault(); });
+  calcBond();
+  calcStock();
+})();
+</script>
