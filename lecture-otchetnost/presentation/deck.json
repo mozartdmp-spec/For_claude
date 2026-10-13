@@ -1,0 +1,33 @@
+{
+  "v": 4,
+  "createdOnFiles": {"v": 1, "at": "2026-10-13T21:00:00Z"},
+  "lists": "css",
+  "title": "Презентация по анализу отчётности",
+  "cover": "cover",
+  "order": [
+    "cover", "plan", "two-questions", "main-idea",
+    "map-rsbu-msfo", "map-three-reports", "map-balance", "map-pl", "map-cf", "map-msfo",
+    "bonds", "b-steps", "b-step1", "b-step2", "b-step3", "b-q1", "b-q2", "b-q3", "b-rule",
+    "b-sectors", "b-traps", "b-flags", "b-limits", "evrotrans", "evrotrans-capex",
+    "romashka", "romashka-reports", "romashka-notes", "romashka-gap", "romashka-interest", "romashka-verdict",
+    "stocks", "s-questions", "s-steps", "s-step1", "s-step2", "s-step3", "s-checks", "s-traps",
+    "s-step4", "s-step4-checks", "s-multiples", "s-principles", "s-sectors", "s-flags",
+    "vasilek", "vasilek-pl", "vasilek-balance", "vasilek-profit", "vasilek-dividend", "vasilek-price", "vasilek-verdict",
+    "monitor-sources", "monitor-routine", "outro", "homework"
+  ],
+  "sections": {
+    "intro": {"description": "Кредитор и совладелец: два главных вопроса к отчётности", "start": "cover"},
+    "map": {"description": "Карта отчётности: РСБУ, МСФО, три отчёта и нужные строки", "start": "map-rsbu-msfo"},
+    "bonds": {"description": "Облигация: проверка эмитента за 30 минут и разбор Евротранса", "start": "bonds"},
+    "bond-case": {"description": "Практика по облигации: ООО «Ромашка»", "start": "romashka"},
+    "stocks": {"description": "Акция: тот же порядок по МСФО и РСБУ", "start": "stocks"},
+    "stock-case": {"description": "Практика по акции: ПАО «Василёк»", "start": "vasilek"},
+    "outro": {"description": "Сигналы между отчётами, итог и домашнее задание", "start": "monitor-sources"}
+  },
+  "faces": {
+    "unbounded": {"family": "Unbounded", "href": "https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&display=swap"},
+    "onest": {"family": "Onest", "href": "https://fonts.googleapis.com/css2?family=Onest:wght@400;600;700&display=swap"},
+    "jetbrains-mono": {"family": "JetBrains Mono", "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap"}
+  },
+  "designSystems": []
+}
