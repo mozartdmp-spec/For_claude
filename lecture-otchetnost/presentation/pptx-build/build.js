@@ -54,6 +54,6 @@ for (const s of slides) {
       });
     }
   }
-  if (s.notes) slide.addNotes(s.notes);
+  if (s.notes && !process.env.NO_NOTES) slide.addNotes(s.notes);
 }
 pres.writeFile({ fileName: OUT }).then(f => console.log('written', f));
