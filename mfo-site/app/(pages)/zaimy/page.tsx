@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { offers } from "@/lib/offers";
-import { OfferCard } from "@/components/OfferCard";
+import { loanRow } from "@/lib/rows";
+import { OfferRow, RiskWarning } from "@/components/OfferRows";
 import { Showcase } from "@/components/Showcase";
 import { OffersSoon } from "@/components/OffersSoon";
 
@@ -10,16 +11,16 @@ export const metadata: Metadata = {
 };
 
 export default function Zaimy() {
-  const cards = Object.fromEntries(offers.map((o) => [o.slug, <OfferCard key={o.slug} offer={o} placement="zaimy" />]));
+  const cards = Object.fromEntries(offers.map((o) => [o.slug, <OfferRow key={o.slug} row={loanRow(o, "zaimy")} />]));
   return (
     <>
       <h1>Подбор микрозайма</h1>
-      <p>
+      <p className="lead">
         В подборке только организации из государственного реестра МФО Банка России. Порядок
         определяется оценкой редакции (<a href="/o-proekte/#metodika">методика</a>). Перед
         оформлением прочитайте индивидуальные условия договора на сайте МФО.
       </p>
-      {offers.length ? <Showcase offers={offers} cards={cards} /> : <OffersSoon what="займов" />}
+      {offers.length ? <><RiskWarning /><Showcase offers={offers} cards={cards} /></> : <OffersSoon what="займов" />}
     </>
   );
 }

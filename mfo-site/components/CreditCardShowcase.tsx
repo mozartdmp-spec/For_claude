@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { CreditCard } from "@/lib/cards";
 
 const FILTERS = [
@@ -27,7 +27,7 @@ export function CreditCardShowcase({ cards, rendered }: { cards: CreditCard[]; r
         ))}
       </div>
       <p className="muted">Подходит карт: {visible.length} из {cards.length}</p>
-      <div className="grid">{visible.map((c) => <div key={c.slug}>{rendered[c.slug]}</div>)}</div>
+      {visible.length > 0 && <div className="rows">{visible.map((c) => <Fragment key={c.slug}>{rendered[c.slug]}</Fragment>)}</div>}
       {visible.length === 0 && <p>Под эти условия ничего не нашлось — снимите один из фильтров.</p>}
     </>
   );

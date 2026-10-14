@@ -17,7 +17,6 @@ export const nav = [
   { href: "/zaimy/", label: "Займы" },
   { href: "/kreditnye-karty/", label: "Кредитные карты" },
   { href: "/debetovye-karty/", label: "Дебетовые карты" },
-  { href: "/stati/", label: "Статьи" },
+  { href: "/stati/", label: "Гайды" },
   { href: "/kalkulyator/", label: "Калькулятор" },
-  { href: "/o-proekte/", label: "О проекте" },
 ];

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { offers, getOffer, rub, pct, days } from "@/lib/offers";
-import { OfferCard } from "@/components/OfferCard";
+import { loanRow } from "@/lib/rows";
+import { OfferRows, RiskWarning } from "@/components/OfferRows";
 import { JsonLd } from "@/components/JsonLd";
 import { OffersSoon } from "@/components/OffersSoon";
 
@@ -31,8 +32,8 @@ export default async function MfoPage({ params }: Props) {
   const o = getOffer(slug);
   if (!o) notFound();
   return (
-    <div className="two-col">
-      <div>
+    <div>
+      <div className="page-text" style={{ maxWidth: 900 }}>
         <h1>{o.brand}: обзор условий</h1>
         <table className="table">
           <tbody>
@@ -56,7 +57,10 @@ export default async function MfoPage({ params }: Props) {
           на сайте Банка России. Если организации там нет — она не вправе выдавать микрозаймы.
         </p>
       </div>
-      <aside><OfferCard offer={o} placement={`mfo-${o.slug}`} /></aside>
+      <section style={{ marginTop: 32 }}>
+        <RiskWarning />
+        <OfferRows rows={[loanRow(o, `mfo-${o.slug}`)]} />
+      </section>
       <JsonLd data={{
         "@context": "https://schema.org",
         "@type": "FinancialProduct",

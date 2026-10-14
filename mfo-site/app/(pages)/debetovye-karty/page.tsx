@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { debitCards } from "@/lib/cards";
-import { DebitCardCard } from "@/components/BankCards";
+import { debitRow } from "@/lib/rows";
+import { OfferRows } from "@/components/OfferRows";
 import { OffersSoon } from "@/components/OffersSoon";
 
 export const metadata: Metadata = {
@@ -12,15 +13,13 @@ export default function DebetovyeKarty() {
   return (
     <>
       <h1>Дебетовые карты</h1>
-      <p>
+      <p className="lead">
         Сравнивайте карты по тому, что вы реально будете использовать: кэшбэк в ваших категориях
         трат, процент на остаток и условия бесплатного обслуживания. Порядок определяется оценкой
         редакции (<a href="/o-proekte/#metodika">методика</a>).
       </p>
       {debitCards.length ? (
-        <div className="grid">
-          {debitCards.map((c) => <DebitCardCard key={c.slug} card={c} placement="debetovye-karty" />)}
-        </div>
+        <OfferRows rows={debitCards.map((c) => debitRow(c, "debetovye-karty"))} />
       ) : <OffersSoon what="дебетовых карт" />}
     </>
   );

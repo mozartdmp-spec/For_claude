@@ -4,6 +4,8 @@ import { Footer } from "@/components/Footer";
 import { DemoBanner } from "@/components/DemoBanner";
 import { Metrika } from "@/components/Metrika";
 import { site } from "@/lib/site";
+import "@fontsource-variable/geologica";
+import "@fontsource-variable/golos-text";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <DemoBanner />
         <Header />
-        <main className="container main">{children}</main>
+        <main id="main">{children}</main>
         <Footer />
         <Metrika />
       </body>

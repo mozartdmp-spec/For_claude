@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { Offer } from "@/lib/offers";
 import { rub } from "@/lib/offers";
 
@@ -35,7 +35,7 @@ export function Showcase({ offers, cards }: { offers: Offer[]; cards: Record<str
         </label>
       </form>
       <p className="muted">Подходит предложений: {visible.length} из {offers.length}</p>
-      <div className="grid">{visible.map((o) => <div key={o.slug}>{cards[o.slug]}</div>)}</div>
+      {visible.length > 0 && <div className="rows">{visible.map((o) => <Fragment key={o.slug}>{cards[o.slug]}</Fragment>)}</div>}
       {visible.length === 0 && <p>Под эти условия ничего не нашлось — попробуйте изменить сумму или срок.</p>}
     </>
   );
