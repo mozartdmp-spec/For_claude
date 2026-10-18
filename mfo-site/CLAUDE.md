@@ -11,6 +11,7 @@ Next.js 16 (App Router), все страницы статические. Мон�
   Поле `demo: true` включает красный баннер.
 - `lib/offers.ts`, `lib/articles.ts` — загрузка данных; `components/` — UI.
 - `docs/content-plan.md` — семантика и очередь статей.
+- `docs/HANDOFF.md` — состояние проекта, принятые решения и что осталось. Читать первым в новом чате.
 - `scripts/check-content.mjs` — проверка статей и офферов (`npm run check:content`).
 
 ## Команды
