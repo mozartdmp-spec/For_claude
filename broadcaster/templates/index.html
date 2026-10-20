@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Клиенты</h1>
+{% if imported %}<div class="note ok" style="margin-bottom:16px">✅ {{ imported }}</div>{% endif %}
+<div class="grid" style="margin-bottom:16px">
+  <div class="card stat"><div class="n">{{ stats.total }}</div><div class="l">в базе</div></div>
+  <div class="card stat"><div class="n">{{ stats.telegram }}</div><div class="l">Telegram · ждём {{ stats.tg_pending }}</div></div>
+  <div class="card stat"><div class="n">{{ stats.max }}</div><div class="l">MAX · ждём {{ stats.max_pending }}</div></div>
+  <div class="card stat"><div class="n">{{ stats.email }}</div><div class="l">E-mail</div></div>
+  <div class="card stat"><div class="n">{{ stats.whatsapp }}</div><div class="l">WhatsApp (вручную)</div></div>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Импорт из Excel / CSV</h2>
+  <p class="muted">Колонки: <b>ФИО</b>, <b>Телефон</b>, <b>Email</b> (любые из двух последних). Повторная загрузка обновляет данные, подписки сохраняются.</p>
+  <form method="post" action="/import" enctype="multipart/form-data" class="row">
+    <input type="file" name="file" accept=".xlsx,.xlsm,.csv" required>
+    <button>Загрузить</button>
+    <a class="btn light" href="/unlinked.xlsx">Скачать не подключивших мессенджеры</a>
+  </form>
+</div>
+
+<div class="card">
+  <h2 style="margin-top:0">Ссылки для клиентов</h2>
+  <p class="muted">Отправьте клиентам письмом или в WhatsApp. Клиент нажимает «Поделиться номером» и попадает в рассылку мессенджера.</p>
+  <p>Telegram: {% if tg_link %}<a href="{{ tg_link }}">{{ tg_link }}</a>{% else %}<span class="muted">бот не настроен</span>{% endif %}<br>
+     MAX: {% if max_link %}<a href="{{ max_link }}">{{ max_link }}</a>{% else %}<span class="muted">укажите MAX_BOT_LINK в .env</span>{% endif %}</p>
+</div>
+
+<div class="card scroll">
+  <table>
+    <tr><th>ФИО</th><th>Телефон</th><th>E-mail</th><th>Каналы</th></tr>
+    {% for c in contacts %}
+    <tr id="c{{ c.id }}">
+      <td>{{ c.full_name }}</td>
+      <td>{{ '+' ~ c.phone if c.phone else '—' }}</td>
+      <td>{{ c.email or '—' }}</td>
+      <td>
+        {% if c.tg_id %}<span class="chip {{ 'ok' if c.tg_sub else 'bad' }}">Telegram{{ '' if c.tg_sub else ' · отписан' }}</span>{% endif %}
+        {% if c.max_id %}<span class="chip {{ 'ok' if c.max_sub else 'bad' }}">MAX{{ '' if c.max_sub else ' · отписан' }}</span>{% endif %}
+        {% if c.email %}<span class="chip {{ 'bad' if c.email_unsub else 'ok' }}">E-mail{{ ' · отписан' if c.email_unsub }}</span>{% endif %}
+        {% if c.phone %}
+        <form method="post" action="/contacts/{{ c.id }}/unsub" style="display:inline">
+          <input type="hidden" name="channel" value="whatsapp"><input type="hidden" name="value" value="{{ 0 if c.wa_unsub else 1 }}">
+          <button class="chip {{ 'bad' if c.wa_unsub else 'ok' }}" style="border:0;cursor:pointer"
+                  title="Нажмите, чтобы {{ 'вернуть в' if c.wa_unsub else 'исключить из' }} WhatsApp-рассылки">WhatsApp{{ ' · отписан' if c.wa_unsub }}</button>
+        </form>{% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">База пуста — загрузите файл.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

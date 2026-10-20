@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Рассылка №{{ camp.id }} <span class="muted" style="font-size:15px">{{ camp.created_at[:16].replace('T', ' ') }}</span></h1>
+{% if running %}<div class="note warn" style="margin-bottom:16px">⏳ Идёт отправка — страница обновляется сама. Письма уходят с паузой, это нормально.</div>{% endif %}
+
+<div class="grid" style="margin-bottom:16px" id="stats">
+  {% for ch, st in stats.items() %}
+  <div class="card stat">
+    <div class="l">{{ CHANNEL_TITLES[ch] }}</div>
+    <div class="n">{{ st.get('sent', 0) + st.get('wa_done', 0) }} <span class="muted" style="font-size:15px">из {{ st.values()|sum }}</span></div>
+    <div class="l">{% for k, v in st.items() %}{{ STATUS_TITLES.get(k, k) }}: {{ v }}{{ '; ' if not loop.last }}{% endfor %}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <p class="muted" style="margin-top:0">Тема письма: <b>{{ camp.subject }}</b></p>
+  <div class="preview">{{ preview|safe }}</div>
+</div>
+
+{% if wa %}
+<h2>WhatsApp — отправьте вручную</h2>
+<div class="card scroll">
+  <p class="muted" style="margin-top:0">Нажмите «Открыть» — откроется чат с готовым текстом, останется нажать «Отправить». Не отправляйте больше 30–50 сообщений в час, отвечайте на ответы клиентов — так номер не попадёт под ограничения WhatsApp.</p>
+  <table>
+    {% for q in wa %}
+    <tr data-id="{{ q.id }}">
+      <td>{{ q.name }}<br><span class="muted">+{{ q.phone }}</span></td>
+      <td class="st">{{ STATUS_TITLES.get(q.status, q.status) }}</td>
+      <td style="text-align:right;white-space:nowrap">
+        <a class="btn" href="{{ q.link }}" target="_blank" onclick="mark({{ q.id }}, 'wa_done')">Открыть</a>
+        <button class="light" onclick="mark({{ q.id }}, 'wa_skip')">Пропустить</button>
+        <button class="light" onclick="mark({{ q.id }}, 'wa_queue')" title="Вернуть в очередь">↺</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+{% if failed %}
+<h2>Ошибки</h2>
+<div class="card scroll">
+  <form method="post" action="/campaigns/{{ camp.id }}/retry"><button>🔁 Повторить неудачные</button></form>
+  <table>{% for d in failed %}<tr><td>{{ CHANNEL_TITLES[d.channel] }}</td><td>{{ d.full_name }}</td><td class="bad">{{ d.error }}</td></tr>{% endfor %}</table>
+</div>
+{% endif %}
+
+<script>
+  const titles = {{ STATUS_TITLES|tojson }};
+  async function mark(id, status) {
+    const body = new URLSearchParams({status});
+    await fetch('/deliveries/' + id + '/wa', {method: 'POST', body});
+    const row = document.querySelector('tr[data-id="' + id + '"] .st');
+    if (row) row.textContent = titles[status];
+  }
+  {% if running %}
+  setInterval(async () => {
+    const r = await (await fetch('/campaigns/{{ camp.id }}/stats')).json();
+    if (!r.running) location.reload();
+  }, 4000);
+  setTimeout(() => location.reload(), 30000);
+  {% endif %}
+</script>
+{% endblock %}

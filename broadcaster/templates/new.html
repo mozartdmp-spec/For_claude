@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Новая рассылка</h1>
+<form method="post" action="/new" class="card">
+  <p><b>Текст</b> <span class="muted">— можно &lt;b&gt;жирный&lt;/b&gt;, &lt;i&gt;курсив&lt;/i&gt;, &lt;a href="https://…"&gt;ссылка&lt;/a&gt;. Подстановки: <code>{first_name}</code> — имя, <code>{name}</code> — ФИО.</span></p>
+  <textarea name="text" id="text" required placeholder="{first_name}, добрый день!&#10;&#10;Делюсь новой идеей: …"></textarea>
+  <p class="muted" style="font-size:13px">В конец автоматически добавится: «{{ disclaimer }}»</p>
+
+  <p><b>Тема письма</b> <span class="muted">(для e-mail; пусто — возьмём первую строку текста)</span></p>
+  <input type="text" name="subject" maxlength="150" placeholder="Инвестиционная идея: …">
+
+  <p><b>Каналы</b></p>
+  {% for ch in channels %}
+  <label class="ch {{ 'muted' if not ch.enabled }}">
+    <input type="checkbox" name="channels" value="{{ ch.key }}" {{ 'checked' if ch.enabled and ch.key != 'whatsapp' }} {{ 'disabled' if not ch.enabled }}>
+    {{ ch.title }} — {{ ch.count }} получ.
+    {% if ch.key == 'whatsapp' %}<span class="muted">· отправка вручную по готовым ссылкам</span>{% endif %}
+    {% if not ch.enabled %}<span class="warn">· не настроен в .env</span>{% endif %}
+  </label>
+  {% endfor %}
+
+  <h2>Предпросмотр для «Иванов Иван Иванович»</h2>
+  <div class="preview" id="preview"><span class="muted">Начните печатать…</span></div>
+  <p style="margin-top:16px"><button onclick="return confirm('Запустить рассылку?')">🚀 Отправить</button></p>
+</form>
+<script>
+  const t = document.getElementById('text'), p = document.getElementById('preview');
+  const disc = {{ disclaimer|tojson }};
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  function render() {
+    let s = t.value.replaceAll('{first_name}', 'Иван').replaceAll('{name}', 'Иванов Иван Иванович');
+    // показываем только разрешённую разметку, остальное — как текст
+    s = esc(s).replace(/&lt;(\/?)(b|i|u|s|code)&gt;/g, '<$1$2>')
+              .replace(/&lt;a href="(https?:[^"]+)"&gt;(.*?)&lt;\/a&gt;/g, '<a href="$1" target="_blank">$2</a>');
+    p.innerHTML = s ? s + (disc ? '\n\n<i>' + esc(disc) + '</i>' : '') : '<span class="muted">Начните печатать…</span>';
+  }
+  t.addEventListener('input', render);
+</script>
+{% endblock %}

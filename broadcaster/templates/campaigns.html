@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Рассылки</h1>
+<div class="card scroll">
+<table>
+  <tr><th>№</th><th>Дата</th><th>Текст</th><th>Итог</th></tr>
+  {% for r in rows %}
+  <tr>
+    <td><a href="/campaigns/{{ r.c.id }}">{{ r.c.id }}</a></td>
+    <td style="white-space:nowrap">{{ r.c.created_at[:16].replace('T', ' ') }}</td>
+    <td><a href="/campaigns/{{ r.c.id }}">{{ r.preview }}…</a></td>
+    <td>{% for ch, st in r.stats.items() %}<span class="chip">{{ CHANNEL_TITLES[ch] }}: {{ st.get('sent', 0) + st.get('wa_done', 0) }}/{{ st.values()|sum }}</span>{% endfor %}</td>
+  </tr>
+  {% else %}<tr><td colspan="4" class="muted">Пока нет рассылок.</td></tr>{% endfor %}
+</table>
+</div>
+{% endblock %}
